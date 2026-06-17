@@ -127,6 +127,16 @@
 
   @media print{header.bar{display:none}body{background:#fff}.venue{overflow:visible;height:auto}#canvas{border:0;background:#fff}.menu-btn,.shape-btn,.rot-handle,.guest .del,.fx-h{display:none!important}}
 
+  header.bar button{transition:background .12s ease}
+  header.bar button.primary{background:#d9b779;color:#3b2f25}
+  header.bar button.primary:hover{background:#e6c894}
+  header.bar button:disabled{opacity:.4;cursor:default}
+  .histbox{display:flex;align-items:center;gap:2px;background:#5c4a3a;border-radius:6px;padding:3px 5px}
+  .histbox button{background:transparent;padding:3px 10px;font-size:17px;line-height:1;color:#fff;border:0;cursor:pointer;border-radius:5px}
+  .histbox button:hover:not(:disabled){background:rgba(255,255,255,.14)}
+  .modal textarea.big{min-height:150px;line-height:1.4}
+  .modal .count-hint{font-size:12px;color:#8a7a66;margin-top:8px;min-height:16px}
+
   /* ---------- login gate ---------- */
   body.locked{overflow:hidden}
   .auth-gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
@@ -185,7 +195,9 @@
   <span class="stat" id="stat"></span>
   <span class="spacer"></span>
   <input id="search" class="search" placeholder="🔍 Փնտրել հյուր">
-  <button id="addTableBtn">➕ Սեղան</button>
+  <button id="addGuestBtn" class="primary">➕ Հյուր ավելացնել</button>
+  <button id="addTableBtn">🍽 Սեղան</button>
+  <div class="histbox" title="Հետարկել / Կրկնել"><button id="undoBtn" title="Հետարկել (Ctrl+Z)">↶</button><button id="redoBtn" title="Կրկնել (Ctrl+Shift+Z)">↷</button></div>
   <button id="statsBtn" class="ghost">📊 Վիճակ</button>
   <span class="legend"><span class="lg bride"></span>👰 Հարս<span class="lg groom" style="margin-left:6px"></span>🤵 Փեսա</span>
   <div class="sizebox" title="Սրահի լայնք (px)"><b>W</b><button id="wMinus">−</button><span id="wLbl">0</span><button id="wPlus">+</button></div>
@@ -193,8 +205,7 @@
   <div class="zoombox"><button id="zoomOut">−</button><span id="zoomLbl">75%</span><button id="zoomIn">+</button></div>
   <button id="printBtn" class="ghost">🖨 Տպել</button>
   <button id="exportBtn" class="ghost">⬇ Արտահանել</button>
-  <button id="resetBtn">↺ Վերականգնել</button>
-  <span class="hint">Քաշիր սեղանը՝ տեղափոխելու · ⟳ պտտել · քաշիր անունը՝ հյուրին տեղափոխելու · ⋮ սեղանի մենյու · ✕ ջնջել հյուր · կրկնակ սեղմում՝ վերանվանել · քաշիր դատարկ տարածքում՝ մի քանի սեղան ընտրելու, ապա քաշիր միասին · Shift+սեղմում՝ ընտրությունն ընդլայնելու</span>
+  <span class="hint">Քաշիր սեղանը՝ տեղափոխելու · ⟳ պտտել · քաշիր անունը՝ այլ սեղան տեղափոխելու · ⋮ սեղանի մենյու · կրկնակ սեղմում անվան վրա՝ վերանվանել · քաշիր դատարկ տարածքում՝ մի քանի սեղան ընտրելու · <b>Ctrl+Z</b>՝ հետարկել, <b>Ctrl+Shift+Z</b>՝ կրկնել</span>
 </header>
 
 <div class="venue">
@@ -305,6 +316,31 @@ function saveSize(){localStorage.setItem(SIZE_KEY,JSON.stringify({w:CANVAS_W,h:C
 
 function saveAll(){ saveSeats(); savePos(); saveShapes(); saveCaps(); saveLabels(); saveSides(); }
 
+/* ---------- history: undo / redo (full-state snapshots) ---------- */
+let undoStack=[], redoStack=[]; const HIST_MAX=120;
+function fullSnapshot(){ return JSON.stringify({tables,positions,shapes,caps,labels,sides,fixtures,w:CANVAS_W,h:CANVAS_H}); }
+function applySnapshot(s){
+  let d; try{ d=JSON.parse(s); }catch(e){ return; }
+  tables=normSeats(d.tables||{});
+  positions=normPos(d.positions||{});
+  shapes=normShapes(d.shapes||{});
+  caps=normCaps(d.caps||{});
+  labels=normLabels(d.labels||{});
+  sides=normSides(d.sides||{});
+  fixtures=normFix(d.fixtures||{});
+  CANVAS_W=clampW(d.w||DEF_W); CANVAS_H=clampH(d.h||DEF_H);
+  saveAll(); saveFix(); saveSize();
+  applySize(); applyFixtures(); render();
+}
+// call BEFORE a mutation; stores the pre-change state
+function pushUndo(){ undoStack.push(fullSnapshot()); if(undoStack.length>HIST_MAX) undoStack.shift(); redoStack.length=0; updateHistoryUI(); }
+// for drags: only record if something actually changed vs the captured pre-snapshot
+function recordIfChanged(pre){ if(pre==null) return; if(fullSnapshot()!==pre){ undoStack.push(pre); if(undoStack.length>HIST_MAX) undoStack.shift(); redoStack.length=0; updateHistoryUI(); } }
+function undo(){ if(!undoStack.length) return; redoStack.push(fullSnapshot()); applySnapshot(undoStack.pop()); updateHistoryUI(); }
+function redo(){ if(!redoStack.length) return; undoStack.push(fullSnapshot()); applySnapshot(redoStack.pop()); updateHistoryUI(); }
+function updateHistoryUI(){ const u=document.getElementById("undoBtn"), r=document.getElementById("redoBtn");
+  if(u) u.disabled=!undoStack.length; if(r) r.disabled=!redoStack.length; }
+
 /* ---------- rendering ---------- */
 function guestChip(n,i,g,style){
   return `<div class="guest" draggable="true" data-table="${n}" data-index="${i}"${style?` style="${style}"`:""}>`+
@@ -381,10 +417,11 @@ function applySize(){
   applyZoom();
 }
 function setSize(w,h){ CANVAS_W=clampW(w); CANVAS_H=clampH(h); saveSize(); applySize(); }
-document.getElementById("wPlus").onclick =()=>setSize(CANVAS_W+200,CANVAS_H);
-document.getElementById("wMinus").onclick=()=>setSize(CANVAS_W-200,CANVAS_H);
-document.getElementById("hPlus").onclick =()=>setSize(CANVAS_W,CANVAS_H+200);
-document.getElementById("hMinus").onclick=()=>setSize(CANVAS_W,CANVAS_H-200);
+function nudgeSize(dw,dh){ const pre=fullSnapshot(); setSize(CANVAS_W+dw,CANVAS_H+dh); recordIfChanged(pre); }
+document.getElementById("wPlus").onclick =()=>nudgeSize(200,0);
+document.getElementById("wMinus").onclick=()=>nudgeSize(-200,0);
+document.getElementById("hPlus").onclick =()=>nudgeSize(0,200);
+document.getElementById("hMinus").onclick=()=>nudgeSize(0,-200);
 
 /* ---------- guest drag & drop (HTML5 DnD) ---------- */
 let drag=null;
@@ -407,6 +444,8 @@ document.addEventListener("drop", e=>{
   moveGuest(drag.fromTable,drag.fromIndex,toTable,toIndex);
 });
 function moveGuest(fromT,fromI,toT,toI){
+  if(tables[fromT][fromI]===undefined) return;
+  pushUndo();
   const [g]=tables[fromT].splice(fromI,1); if(g===undefined) return;
   if(fromT===toT && fromI<toI) toI--;
   if(toI==null||toI>tables[toT].length) toI=tables[toT].length;
@@ -439,7 +478,7 @@ canvas.addEventListener("pointerdown", e=>{
     if(h){ const dir=h.className.replace("fx-h","").trim();
       act={type:"fixresize", el:fx, id, dir, sx:p.x, sy:p.y, x0:fx.offsetLeft, y0:fx.offsetTop, w0:fx.offsetWidth, h0:fx.offsetHeight}; }
     else { act={type:"fixmove", el:fx, id, dx:p.x-fx.offsetLeft, dy:p.y-fx.offsetTop}; }
-    fx.classList.add("moving"); canvas.setPointerCapture(e.pointerId); e.preventDefault(); return;
+    act.pre=fullSnapshot(); fx.classList.add("moving"); canvas.setPointerCapture(e.pointerId); e.preventDefault(); return;
   }
   const card=e.target.closest(".table");
   if(!card){ // empty canvas → marquee box-select
@@ -477,6 +516,7 @@ canvas.addEventListener("pointerdown", e=>{
       card.classList.add("moving");
     }
   }
+  if(act && act.type!=="marquee") act.pre=fullSnapshot();
   canvas.setPointerCapture(e.pointerId); e.preventDefault();
 });
 canvas.addEventListener("pointermove", e=>{
@@ -529,24 +569,25 @@ function endAct(){
     const dx=act.dx||0, dy=act.dy||0;
     for(const it of act.items){ positions[it.id].x=Math.round(it.x+dx); positions[it.id].y=Math.round(it.y+dy);
       const el=tableEl(it.id); if(el) el.classList.remove("moving"); }
-    savePos(); act=null; return;
+    savePos(); recordIfChanged(act.pre); act=null; return;
   }
   if(act.type==="fixmove"||act.type==="fixresize"){
     const f=fixtures[act.id];
     if(act.x!=null) f.x=Math.round(act.x); if(act.y!=null) f.y=Math.round(act.y);
     if(act.w!=null) f.w=Math.round(act.w); if(act.h!=null) f.h=Math.round(act.h);
-    act.el.classList.remove("moving"); saveFix(); act=null; return;
+    act.el.classList.remove("moving"); saveFix(); recordIfChanged(act.pre); act=null; return;
   }
   const pos=positions[act.n];
   if(act.type==="move"){ pos.x=parseFloat(act.card.style.left); pos.y=parseFloat(act.card.style.top); }
   else if(act.ang!=null){ pos.rot=act.ang; }
-  act.card.classList.remove("moving","rotating"); savePos(); act=null;
+  act.card.classList.remove("moving","rotating"); savePos(); recordIfChanged(act.pre); act=null;
 }
 canvas.addEventListener("pointerup", endAct);
 canvas.addEventListener("pointercancel", endAct);
 
 /* ---------- table & guest operations ---------- */
 function addTable(){
+  pushUndo();
   const ids=allIds(); const n=(ids.length?Math.max(...ids):0)+1;
   tables[n]=[];
   let x=(venue.scrollLeft+venue.clientWidth/2)/zoom-100;
@@ -561,47 +602,79 @@ function deleteTable(n){
   const nm=labels[n]||("Սեղան "+n);
   const msg=cnt? `Ջնջե՞լ «${nm}»-ը՝ ${cnt} հյուրով։ Հյուրերն էլ կջնջվեն։` : `Ջնջե՞լ «${nm}»-ը։`;
   if(!confirm(msg)) return;
+  pushUndo();
   delete tables[n]; delete positions[n]; delete shapes[n]; delete caps[n]; delete labels[n]; delete sides[n];
   saveAll(); render();
 }
 function emptyTable(n){
   if(!tables[n].length) return;
   if(confirm(`Հեռացնե՞լ «${labels[n]||("Սեղան "+n)}»-ի բոլոր ${tables[n].length} հյուրերին։`)){
+    pushUndo();
     tables[n]=[]; saveSeats(); render();
   }
 }
 function transferAll(from){
   if(!tables[from].length){ alert("Այս սեղանը դատարկ է։"); return; }
   chooseTable("Տեղափոխել բոլոր հյուրերին →", from, to=>{
+    pushUndo();
     tables[to]=tables[to].concat(tables[from]); tables[from]=[]; saveSeats(); render();
   });
 }
 function swapTables(from){
   chooseTable("Փոխանակել հյուրերը սեղանի հետ →", from, to=>{
+    pushUndo();
     const tmp=tables[from]; tables[from]=tables[to]; tables[to]=tmp; saveSeats(); render();
   });
 }
-function addGuest(n){
-  const v=prompt("Ավելացնել հյուր(եր) (մի քանիսը՝ ստորակետով կամ նոր տողով)","");
-  if(v==null) return;
-  v.split(/[,\n]/).map(s=>s.trim()).filter(Boolean).forEach(g=>tables[n].push(g));
-  saveSeats(); render();
+/* easy multi-add: table picker + textarea + live capacity feedback (Ctrl+Enter to add) */
+function leastFullTable(ids){ let best=ids[0], bestRatio=Infinity;
+  for(const i of ids){ const r=tables[i].length/(caps[i]||capOf(i)); if(r<bestRatio){ bestRatio=r; best=i; } } return best; }
+function openAddGuest(preTable){
+  const ids=allIds();
+  if(!ids.length){ alert("Սկզբում ավելացրու սեղան։"); return; }
+  const target=(preTable!=null && tables[preTable]) ? preTable : leastFullTable(ids);
+  const bg=document.createElement("div"); bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal" style="min-width:360px">
+    <h3>➕ Ավելացնել հյուր</h3>
+    <label>Սեղան</label>
+    <select id="agTable">${ids.map(i=>`<option value="${i}"${i===target?" selected":""}>${escapeHTML(labels[i]||("Սեղան "+i))} (${tables[i].length}/${caps[i]||capOf(i)})</option>`).join("")}</select>
+    <label>Անուն(ներ)</label>
+    <textarea id="agNames" class="big" placeholder="Մեկ անուն՝ մեկ տողում&#10;Անի&#10;Արամ, Մարի"></textarea>
+    <div class="count-hint" id="agHint"></div>
+    <div class="row"><button class="cancel">Չեղարկել</button><button class="ok">Ավելացնել</button></div>
+  </div>`;
+  document.body.appendChild(bg);
+  const ta=bg.querySelector("#agNames"), sel=bg.querySelector("#agTable"), hint=bg.querySelector("#agHint");
+  const parse=()=>ta.value.split(/[,\n]/).map(s=>s.trim()).filter(Boolean);
+  const refresh=()=>{ const names=parse(), t=+sel.value, cap=caps[t]||capOf(t), after=tables[t].length+names.length;
+    hint.textContent = names.length ? `${names.length} նոր հյուր · սեղանը կդառնա ${after}/${cap}${after>cap?" ⚠️ գերբեռնված":""}`
+                                    : "Բաժանիր ստորակետով կամ նոր տողով · Ctrl+Enter՝ ավելացնել"; };
+  ta.addEventListener("input",refresh); sel.addEventListener("change",refresh); refresh();
+  const close=()=>bg.remove();
+  const commit=()=>{ const names=parse(); if(!names.length){ ta.focus(); return; }
+    pushUndo(); const t=+sel.value; names.forEach(g=>tables[t].push(g)); saveSeats(); render(); close(); };
+  bg.querySelector(".cancel").onclick=close;
+  bg.querySelector(".ok").onclick=commit;
+  bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
+  ta.addEventListener("keydown",e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); commit(); } });
+  setTimeout(()=>ta.focus(),0);
 }
 function renameTable(n){
   const v=prompt("Սեղանի անունը", labels[n]||("Սեղան "+n));
   if(v==null) return;
-  labels[n]=v.trim()||("Սեղան "+n); saveLabels(); render();
+  const nv=v.trim()||("Սեղան "+n); if(nv===labels[n]) return;
+  pushUndo(); labels[n]=nv; saveLabels(); render();
 }
 function setCap(n){
   const v=prompt("Տեղերի քանակ այս սեղանի համար", caps[n]||capOf(n));
   if(v==null) return;
-  const c=parseInt(v,10); if(c>0){ caps[n]=c; saveCaps(); render(); }
+  const c=parseInt(v,10); if(c>0 && c!==caps[n]){ pushUndo(); caps[n]=c; saveCaps(); render(); }
 }
-function deleteGuest(n,i){ tables[n].splice(i,1); saveSeats(); render(); }
+function deleteGuest(n,i){ pushUndo(); tables[n].splice(i,1); saveSeats(); render(); }
 function renameGuest(n,i){
   const v=prompt("Հյուրի անունը", tables[n][i]);
   if(v==null) return;
-  const t=v.trim(); if(t){ tables[n][i]=t; saveSeats(); render(); }
+  const t=v.trim(); if(t && t!==tables[n][i]){ pushUndo(); tables[n][i]=t; saveSeats(); render(); }
 }
 
 /* ---------- target-table chooser modal ---------- */
@@ -646,7 +719,7 @@ function openMenu(n,btn){
   m.style.top=Math.min(r.bottom+4,window.innerHeight-m.offsetHeight-8)+"px";
   m.addEventListener("click",e=>{
     const b=e.target.closest("button"); if(!b) return; const a=b.dataset.a; closeMenu();
-    if(a==="add") addGuest(n);
+    if(a==="add") openAddGuest(n);
     else if(a==="rename") renameTable(n);
     else if(a==="cap") setCap(n);
     else if(a==="transfer") transferAll(n);
@@ -672,15 +745,16 @@ document.getElementById("tables").addEventListener("dblclick", e=>{
   const g=e.target.closest(".guest"); if(!g) return;
   e.preventDefault(); renameGuest(+g.dataset.table,+g.dataset.index);
 });
-function toggleShape(n){ shapes[n]=shapes[n]==="rect"?"round":"rect"; saveShapes(); render(); }
-function setSide(n,s){ sides[n]=s; saveSides(); render(); }
+function toggleShape(n){ pushUndo(); shapes[n]=shapes[n]==="rect"?"round":"rect"; saveShapes(); render(); }
+function setSide(n,s){ if(sides[n]===s) return; pushUndo(); sides[n]=s; saveSides(); render(); }
 
 /* ---------- fixture rename ---------- */
 canvas.addEventListener("dblclick", e=>{
   const fx=e.target.closest(".fixture"); if(!fx) return;
   e.preventDefault(); const f=fixtures[fx.id];
   const v=prompt("Անվանումը", f.label); if(v==null) return;
-  f.label=v.trim()||f.label; saveFix(); applyFixtures();
+  const nv=v.trim()||f.label; if(nv===f.label) return;
+  pushUndo(); f.label=nv; saveFix(); applyFixtures();
 });
 
 /* ---------- stats ---------- */
@@ -766,14 +840,9 @@ document.getElementById("search").addEventListener("input", e=>{
 
 /* ---------- toolbar buttons ---------- */
 document.getElementById("addTableBtn").onclick=addTable;
-document.getElementById("resetBtn").onclick=()=>{
-  if(confirm("Վերականգնե՞լ սկզբնական դասավորությունը, սեղանները, չափերը, ձևն ու պտույտը։")){
-    tables=normSeats(DEFAULT); positions=normPos(DEFAULT_POS); shapes=normShapes(DEFAULT_SHAPE);
-    caps=normCaps({}); labels=normLabels({}); sides=normSides({});
-    fixtures=normFix({}); saveFix(); applyFixtures();
-    saveAll(); setSize(DEF_W,DEF_H); render();
-  }
-};
+document.getElementById("addGuestBtn").onclick=()=>openAddGuest(null);
+document.getElementById("undoBtn").onclick=undo;
+document.getElementById("redoBtn").onclick=redo;
 document.getElementById("printBtn").onclick=()=>window.print();
 document.getElementById("exportBtn").onclick=()=>{
   let txt="";
@@ -785,9 +854,20 @@ document.getElementById("exportBtn").onclick=()=>{
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="seghaner.txt"; a.click(); URL.revokeObjectURL(a.href);
 };
 
+/* ---------- keyboard: undo / redo + Esc to close ---------- */
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape"){ closeMenu(); const ms=document.querySelectorAll(".modal-bg"); if(ms.length) ms[ms.length-1].remove(); return; }
+  if(!(e.ctrlKey||e.metaKey)) return;
+  const k=(e.key||"").toLowerCase(); if(k!=="z"&&k!=="y") return;
+  const t=e.target; if(t && (/^(input|textarea|select)$/i.test(t.tagName)||t.isContentEditable)) return; // let text fields use native undo
+  e.preventDefault();
+  if(k==="y"||(k==="z"&&e.shiftKey)) redo(); else undo();
+});
+
 applySize();
 applyFixtures();
 render();
+updateHistoryUI();
 </script>
 </body>
 </html>
