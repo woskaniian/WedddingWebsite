@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Հարսանյաց սեղանների դասավորություն</title>
+<style>
+  :root{ --line:#cdbfae; --ok:#3a7d44; --warn:#c0392b; --accent:#a8743a; --card:#fff; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#efe9df;color:#2b2b2b;}
+  header.bar{position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#3b2f25;color:#fff;padding:10px 18px;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  header.bar h1{font-size:18px;margin:0;font-weight:600}
+  header.bar .spacer{flex:1}
+  header.bar button{font-size:13px;padding:7px 12px;border:0;border-radius:6px;cursor:pointer;background:#a8743a;color:#fff;font-weight:600;}
+  header.bar button.ghost{background:#5c4a3a}
+  header.bar .stat{font-size:13px;opacity:.9}
+  .search{padding:6px 10px;border:0;border-radius:6px;font-size:13px;min-width:160px}
+  .zoombox{display:flex;align-items:center;gap:6px;background:#5c4a3a;border-radius:6px;padding:3px 6px;}
+  .zoombox button{background:transparent;padding:2px 8px;font-size:16px;line-height:1}
+  .zoombox span{font-size:13px;min-width:42px;text-align:center}
+  .sizebox{display:flex;align-items:center;gap:4px;background:#5c4a3a;border-radius:6px;padding:3px 6px;font-size:12px}
+  .sizebox b{opacity:.8;font-weight:700}
+  .sizebox button{background:transparent;padding:2px 7px;font-size:15px;line-height:1;color:#fff;border:0;cursor:pointer}
+  .sizebox span{min-width:42px;text-align:center}
+  .hint{font-size:12px;opacity:.75;width:100%}
+
+  .venue{overflow:auto;padding:18px;height:calc(100vh - 78px);}
+  #canvasWrap{margin:0 auto;}
+  #canvas{position:relative;width:1660px;height:2320px;transform-origin:0 0;
+    background:linear-gradient(#e9e0d0 1px,transparent 1px) 0 0/40px 40px,linear-gradient(90deg,#e9e0d0 1px,transparent 1px) 0 0/40px 40px,#f6f1e7;
+    border:1px solid var(--line);border-radius:10px;}
+
+  .fixture{position:absolute;text-align:center;font-weight:700;letter-spacing:2px;color:#4a3b2c;background:linear-gradient(#e6dcc9,#d8cbb2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:grab;user-select:none;}
+  .fixture.moving{z-index:160;filter:drop-shadow(0 8px 14px rgba(0,0,0,.3))}
+  .fixture .fx-label{pointer-events:none}
+  .fx-h{position:absolute;z-index:7;background:transparent}
+  .fx-h.n{top:-5px;left:10px;right:10px;height:10px;cursor:ns-resize}
+  .fx-h.s{bottom:-5px;left:10px;right:10px;height:10px;cursor:ns-resize}
+  .fx-h.e{right:-5px;top:10px;bottom:10px;width:10px;cursor:ew-resize}
+  .fx-h.w{left:-5px;top:10px;bottom:10px;width:10px;cursor:ew-resize}
+  .fx-h.ne,.fx-h.nw,.fx-h.se,.fx-h.sw{width:14px;height:14px;background:#fff;border:2px solid var(--accent);border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .fx-h.ne{top:-7px;right:-7px;cursor:nesw-resize}
+  .fx-h.nw{top:-7px;left:-7px;cursor:nwse-resize}
+  .fx-h.se{bottom:-7px;right:-7px;cursor:nwse-resize}
+  .fx-h.sw{bottom:-7px;left:-7px;cursor:nesw-resize}
+  #stage{border-radius:50%/100%;}
+  #presidium{border-radius:8px;}
+
+  /* bride / groom sides */
+  .legend{font-size:12px;opacity:.9;display:flex;align-items:center;gap:4px}
+  .lg{display:inline-block;width:12px;height:12px;border-radius:3px}
+  .lg.bride{background:#d6336c}.lg.groom{background:#1c7ed6}
+  .side-bride .round-wrap,.side-bride .long-surface{border-color:#d6336c;box-shadow:inset 0 0 0 2px #f8d7e3,0 3px 8px rgba(0,0,0,.14)}
+  .side-groom .round-wrap,.side-groom .long-surface{border-color:#1c7ed6;box-shadow:inset 0 0 0 2px #d3e4f7,0 3px 8px rgba(0,0,0,.14)}
+  .side-bride .badge{background:#d6336c}
+  .side-groom .badge{background:#1c7ed6}
+
+  /* multi-select */
+  .marquee{position:absolute;border:1.5px solid var(--accent);background:rgba(168,116,58,.13);z-index:140;pointer-events:none;border-radius:3px;}
+  .table.selected .round-wrap,.table.selected .long-surface{box-shadow:0 0 0 3px var(--accent),0 4px 10px rgba(0,0,0,.25)}
+
+  .badge{width:30px;height:30px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;background:#a8743a;color:#fff;font-weight:700;font-size:14px;}
+  .badge.sq{border-radius:7px}
+  .count{font-size:12px;font-weight:700;color:var(--ok);white-space:nowrap}
+  .count.over{color:var(--warn)}
+  .surf-title{font-weight:600;font-size:13px;white-space:nowrap}
+
+  .guest{background:#faf6ee;border:1px solid #e2d5c0;border-radius:6px;padding:5px 8px;font-size:13px;cursor:grab;user-select:none;display:flex;align-items:center;gap:6px;}
+  .guest:hover{background:#f3e9d8;border-color:var(--accent)}
+  .guest .gi{font-size:10px;color:#b09a7d;font-weight:700;min-width:16px;text-align:right}
+  .guest .del{display:none;color:var(--warn);font-weight:700;cursor:pointer;margin-left:2px;font-size:12px}
+  .guest:hover .del{display:inline}
+  .guest.dragging{opacity:.4}
+  .guest.found{box-shadow:0 0 0 2px var(--ok);background:#e7f3e9}
+  .dropzone.dragover{outline:3px dashed var(--accent);outline-offset:3px}
+  .guest.dropbefore{box-shadow:0 0 0 2px var(--accent)}
+  .empty-note{font-size:11px;color:#b3a48d;font-style:italic}
+
+  .table{position:absolute;transform-origin:center center;}
+  .table.moving{z-index:150;filter:drop-shadow(0 8px 14px rgba(0,0,0,.3))}
+  .table.rotating{z-index:150}
+
+  .rot-handle{position:absolute;left:50%;top:-32px;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:#fff;border:2px solid var(--accent);cursor:grab;z-index:6;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .rot-handle::before{content:"";position:absolute;left:50%;top:20px;width:2px;height:12px;background:var(--accent);transform:translateX(-50%);}
+  .rot-handle::after{content:"⟳";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:13px;color:var(--accent);line-height:1;font-weight:700;}
+  .shape-btn{position:absolute;top:-12px;right:-12px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;z-index:6;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .shape-btn:hover{background:var(--accent);color:#fff;}
+  .menu-btn{position:absolute;top:-12px;left:-12px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--accent);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:17px;line-height:1;cursor:pointer;z-index:6;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .menu-btn:hover{background:var(--accent);color:#fff;}
+
+  /* round tables */
+  .table.round{width:200px;}
+  .round-wrap{position:relative;width:200px;height:200px;border-radius:50%;cursor:grab;background:radial-gradient(circle at 50% 38%,#fffdf8,#ece0cb);border:2px solid var(--line);box-shadow:0 3px 8px rgba(0,0,0,.13);}
+  .round-wrap.dragover{outline:3px dashed var(--accent);outline-offset:4px;border-radius:50%}
+  .round-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:74px;height:74px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:inset 0 0 0 4px #f3e9d8;pointer-events:none;}
+  .round .guest{position:absolute;transform:translate(-50%,-50%);max-width:84px;font-size:10px;line-height:1.05;padding:3px 5px;text-align:center;justify-content:center;}
+  .round .guest .gi{display:none}
+  .round-empty{position:absolute;left:50%;top:74%;transform:translate(-50%,-50%)}
+
+  /* rectangle banquet tables — names attached on both long sides */
+  .table.rect{height:160px;}
+  .long-wrap{position:relative;height:160px;cursor:grab;}
+  .long-surface{position:absolute;left:5%;right:5%;top:50%;transform:translateY(-50%);height:50px;border-radius:9px;background:linear-gradient(#fffdf8,#ece0cb);border:2px solid var(--line);box-shadow:0 3px 8px rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;gap:8px;}
+  .long-wrap.dragover{outline:3px dashed var(--accent);outline-offset:4px;border-radius:10px}
+  .rect .guest{position:absolute;transform:translate(-50%,-50%);max-width:90px;font-size:10px;line-height:1.05;padding:3px 5px;text-align:center;justify-content:center;}
+  .rect .guest .gi{display:none}
+  .rect .round-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+
+  /* popover menu */
+  .popmenu{position:absolute;z-index:500;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);padding:4px;min-width:215px;}
+  .popmenu button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:transparent;border:0;color:#2b2b2b;padding:8px 10px;border-radius:6px;font-size:13px;cursor:pointer;}
+  .popmenu button:hover{background:#f3e9d8}
+  .popmenu button.danger{color:var(--warn)}
+  .popmenu hr{border:0;border-top:1px solid #eee;margin:4px 0}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:600;display:flex;align-items:center;justify-content:center;}
+  .modal{background:#fff;border-radius:10px;padding:18px 20px;min-width:300px;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,.3);}
+  .modal h3{margin:0 0 12px;font-size:16px;color:#3b2f25}
+  .modal label{display:block;font-size:13px;margin:10px 0 4px;color:#5c4a3a}
+  .modal select,.modal input,.modal textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit}
+  .modal textarea{min-height:80px;resize:vertical}
+  .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .modal .row button{padding:8px 14px;border:0;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px}
+  .modal .row .ok{background:var(--accent);color:#fff}
+  .modal .row .cancel{background:#e6dccb;color:#3b2f25}
+
+  @media print{header.bar{display:none}body{background:#fff}.venue{overflow:visible;height:auto}#canvas{border:0;background:#fff}.menu-btn,.shape-btn,.rot-handle,.guest .del,.fx-h{display:none!important}}
+
+  /* ---------- login gate ---------- */
+  body.locked{overflow:hidden}
+  .auth-gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg,#3b2f25,#5c4a3a);padding:20px;}
+  .auth-card{background:#fff;border-radius:14px;padding:28px 26px;width:100%;max-width:340px;
+    box-shadow:0 14px 40px rgba(0,0,0,.4);}
+  .auth-card h2{margin:0 0 18px;font-size:18px;color:#3b2f25;text-align:center;font-weight:600}
+  .auth-card label{display:block;font-size:13px;margin:12px 0 5px;color:#5c4a3a;font-weight:600}
+  .auth-card input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:15px;font-family:inherit}
+  .auth-card input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,116,58,.18)}
+  .auth-card button{width:100%;margin-top:20px;padding:11px;border:0;border-radius:8px;background:var(--accent);
+    color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+  .auth-card button:hover{background:#946333}
+  .auth-err{margin:12px 0 0;color:var(--warn);font-size:13px;text-align:center}
+</style>
+</head>
+<body class="locked">
+<!-- ---------- login gate ----------
+  Note: this is a static site, so the credentials below live in the page source
+  and only deter casual visitors. For real protection, serve /tables behind
+  server-side / HTTP Basic auth instead. -->
+<div id="authGate" class="auth-gate">
+  <form id="authForm" class="auth-card" autocomplete="on">
+    <h2>🔒 Սեղանների դասավորություն</h2>
+    <label for="authUser">Օգտանուն</label>
+    <input id="authUser" name="username" autocomplete="username" autofocus>
+    <label for="authPass">Գաղտնաբառ</label>
+    <input id="authPass" name="password" type="password" autocomplete="current-password">
+    <p id="authErr" class="auth-err" hidden>Սխալ օգտանուն կամ գաղտնաբառ</p>
+    <button type="submit">Մուտք</button>
+  </form>
+</div>
+<script>
+(function(){
+  var USER="admin", PASS="P@ssw0rd@123", KEY="weddingTablesAuth_v1";
+  var gate=document.getElementById("authGate");
+  if(sessionStorage.getItem(KEY)==="1"){ document.body.classList.remove("locked"); gate.remove(); return; }
+  document.getElementById("authForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    var u=document.getElementById("authUser").value.trim(), p=document.getElementById("authPass").value;
+    if(u===USER && p===PASS){
+      sessionStorage.setItem(KEY,"1");
+      document.body.classList.remove("locked");
+      gate.remove();
+    } else {
+      document.getElementById("authErr").hidden=false;
+      document.getElementById("authPass").value="";
+      document.getElementById("authPass").focus();
+    }
+  });
+})();
+</script>
+
+<header class="bar">
+  <h1>💒 Հարսանյաց սեղաններ</h1>
+  <span class="stat" id="stat"></span>
+  <span class="spacer"></span>
+  <input id="search" class="search" placeholder="🔍 Փնտրել հյուր">
+  <button id="addTableBtn">➕ Սեղան</button>
+  <button id="statsBtn" class="ghost">📊 Վիճակ</button>
+  <span class="legend"><span class="lg bride"></span>👰 Հարս<span class="lg groom" style="margin-left:6px"></span>🤵 Փեսա</span>
+  <div class="sizebox" title="Սրահի լայնք (px)"><b>W</b><button id="wMinus">−</button><span id="wLbl">0</span><button id="wPlus">+</button></div>
+  <div class="sizebox" title="Սրահի երկարք (px)"><b>H</b><button id="hMinus">−</button><span id="hLbl">0</span><button id="hPlus">+</button></div>
+  <div class="zoombox"><button id="zoomOut">−</button><span id="zoomLbl">75%</span><button id="zoomIn">+</button></div>
+  <button id="printBtn" class="ghost">🖨 Տպել</button>
+  <button id="exportBtn" class="ghost">⬇ Արտահանել</button>
+  <button id="resetBtn">↺ Վերականգնել</button>
+  <span class="hint">Քաշիր սեղանը՝ տեղափոխելու · ⟳ պտտել · քաշիր անունը՝ հյուրին տեղափոխելու · ⋮ սեղանի մենյու · ✕ ջնջել հյուր · կրկնակ սեղմում՝ վերանվանել · քաշիր դատարկ տարածքում՝ մի քանի սեղան ընտրելու, ապա քաշիր միասին · Shift+սեղմում՝ ընտրությունն ընդլայնելու</span>
+</header>
+
+<div class="venue">
+  <div id="canvasWrap"><div id="canvas">
+    <div id="stage" class="fixture"><span class="fx-label">ԲԵՄ</span><div class="fx-h n"></div><div class="fx-h s"></div><div class="fx-h e"></div><div class="fx-h w"></div><div class="fx-h ne"></div><div class="fx-h nw"></div><div class="fx-h se"></div><div class="fx-h sw"></div></div>
+    <div id="tables"></div>
+    <div id="presidium" class="fixture"><span class="fx-label">ՊՐԵԶԻԴԻՈՒՄ</span><div class="fx-h n"></div><div class="fx-h s"></div><div class="fx-h e"></div><div class="fx-h w"></div><div class="fx-h ne"></div><div class="fx-h nw"></div><div class="fx-h se"></div><div class="fx-h sw"></div></div>
+  </div></div>
+</div>
+
+<script>
+const SEAT_KEY="weddingSeating_v6", POS_KEY="weddingPos_v6", ZOOM_KEY="weddingZoom_v6", SHAPE_KEY="weddingShape_v6";
+const CAP_KEY="weddingCap_v6", SIZE_KEY="weddingSize_v6", LABEL_KEY="weddingLabel_v6", FIX_KEY="weddingFix_v6", SIDE_KEY="weddingSide_v6";
+const DEFAULT_FIX={ stage:{x:560,y:14,w:540,h:78,label:"ԲԵՄ"}, presidium:{x:580,y:2160,w:480,h:70,label:"ՊՐԵԶԻԴԻՈՒՄ"} };
+const DEF_W=1660, DEF_H=2320;
+
+const DEFAULT = {
+  1:["Եվա","Մեխակ","Մարիամ","Կարեն","Ժենյա","Տաթև","Վահագ Ջամալյան","Լիլիթ","Գոշ","Տիգրան Թոփուզյան","Սոնա Թոփուզյան","Լյովա","Մելինե","Մանե","Վահագ Մկրտիչյան","Էլեն","Տիկո","Նելլի"],
+  2:["Կարապետ","Ռաիսա","Խաչիկ","Նարինե","Ֆրանց","Ռոզա","Գևորգ","Նեկտար","Նունե","Արո","Վաչո","Գայանե Ավետիսյան","Էդուարդ Դարբինյան"],
+  3:["Հեղինե","Արմինե","Սյուզաննա","Սոնա","Գևորգ","Ալիկ","Միռա","Էրիկ","Էլեն","Արփինե","Նորո","Արթուր","Նարեկ"],
+  4:["Իռա","Վալեր","Նելի","Արթուր","Էլինա","Էրիկ","Արտյոմ","Սերգեյ","Քնար","Յանա","Ժաննա"],
+  5:["Վարդան","Արմինե","Գարիկ","Էլզա","Արթուր","Արթուր կին","Ալեքո","Ալեքո կնիկ","Արմեն","Քրիստինե","Մարիամ","Ռազմիկ"],
+  6:["Վարդան","Լիանա","Անահիտ","Աշոտ","Հասմիկ","Վահրամ","Էմմա","Հայրո","Հայրո կին","Էդո","Վարուժ"],
+  7:["Կարո","Գոհար","Հարազ","Սուսան","Գագո","Կարինե","Արշամ","Թերեզա","Արման","Լիանա"],
+  8:["Գուրգեն","Լուսինե","Արամ","Վիլյամ","Վիլյամ կին","Վիլյամ տղա","Հրաչ","Քրիստինե","Լյուդովիկ","Պետրոս","Էրիկ","Վիտա"],
+  9:["Քաջիկ","Սվետա","Արինա","Արմիկ","Վիգեն","Սեդա","Միլենա","Հրաչ","Գայանե Սեդրակյան","Թիա","Վահիկ","Կարինե"],
+  10:["Զարուհի","Դավիթ","Մարինե","Սարգիս","Արտակ","Մանե","Դավիթ","Շուշան","Անահիտ","Վահե","Գոռ","Գոռ կին"],
+  11:["Վարդան Մինասյան","Աննա","Արուսյակ","Արմինե","Վահան","Մարգարիտա","Սուրեն","Ռիտա","Աիդա","Անժելա"],
+  12:["Կոնստանտին","Էլեն","Արմեն","Նարինե","Դավիթ","Գևորգ","Նարեկ","Կարինա","Տիգրան Կարապետյան","Սերգեյ Իսկանդարյան","Արտյոմ","Արտյոմ կին"],
+  13:["Գևորգ","Արուս","Հարութ Հովհաննիսյան","Վահե Մինասյան","Ժաննա","Սոնա","Հրաչ","Հովհաննես","Հայկ","Յուրա","Յուրա կին","Մկրտիչ"],
+  14:["Մանվել","Լուսինե","Սարգիս","Սոնա","Նարեկ","Սվետլանա","Քերոբ","Կարեն Պողոսյան","Սամվել Խաչատրյան","Հովհաննիսյան Էդգար"],
+  15:["Դավիթ Վարդանյան","Դավիթ ընկերուհի","Ռուբեն Վարդանյան","Նորայր Վարդանյան","Սուրեն Մանուկյան","Անդրանիկ Դանիելյան","Անդրանիկի ընկերուհի","Մայիս","Գուրգեն Հակոբյան","Սամվել Սիմոնյան"],
+  16:["Հովհաննես Մուրադյան","Վարդան","Նանա","Արգամ","Վարդուհի","Վաղարշակ","Դավիթ","Արաքսյա","Հարութ","Ազնիվ","Գեղամ","Էդվարդ Փանոսյան"],
+  17:["Բաբկեն","Տիգրան","Խաչիկ","Խաչիկ կին","Սերգեյ","Սեդա","Վլադ","Գալինա","Ալբերտ","Ալբերտ կին","Նորայր","Արմեն"],
+  18:["Ռուբեն","Ռուբեն կին","Սամվել","Սամվել կին","Կարեն Խոնդկարյան","Կարեն կին"],
+  19:[],20:[],21:[],22:[],23:[],24:[],25:[],26:[],27:[],28:[],29:[],30:[],31:[],32:[],33:[],34:[]
+};
+
+const DEFAULT_POS = {
+  34:{x:40,y:90}, 32:{x:40,y:340}, 30:{x:40,y:590}, 28:{x:40,y:840}, 26:{x:40,y:1090}, 24:{x:40,y:1340}, 21:{x:40,y:1590},
+  33:{x:290,y:90}, 31:{x:290,y:340}, 29:{x:290,y:590}, 27:{x:290,y:840}, 25:{x:290,y:1090}, 23:{x:290,y:1340}, 20:{x:290,y:1590},
+  22:{x:540,y:590}, 19:{x:540,y:840},
+  18:{x:870,y:560,rot:0}, 2:{x:900,y:840}, 5:{x:900,y:1090},
+  16:{x:1140,y:90}, 14:{x:1140,y:340}, 12:{x:1140,y:590}, 10:{x:1140,y:840}, 8:{x:1140,y:1090}, 6:{x:1140,y:1340}, 3:{x:1140,y:1590},
+  17:{x:1390,y:90}, 15:{x:1390,y:340}, 13:{x:1390,y:590}, 11:{x:1390,y:840}, 9:{x:1390,y:1090}, 7:{x:1390,y:1340}, 4:{x:1390,y:1590},
+  1:{x:440,y:1820,rot:0}
+};
+
+// default capacity: table 1 = 18, table 18 = 6, the rest = 12
+function capOf(n){ return n===1 ? 18 : n===18 ? 6 : 12; }
+
+// table shapes: 'round' | 'rect' — only table 1 starts as a rectangle (seeds for ids 1..34)
+const DEFAULT_SHAPE={}; for(let i=1;i<=34;i++) DEFAULT_SHAPE[i]=(i===1)?"rect":"round";
+
+/* ---------- state ---------- */
+function allIds(){ return Object.keys(tables).map(Number).filter(n=>Number.isInteger(n)&&n>=1).sort((a,b)=>a-b); }
+
+let tables=loadSeats();
+let positions=loadPos();
+let shapes=loadShapes();
+let caps=loadCaps();
+let labels=loadLabels();
+let sides=loadSides();
+let zoom=loadZoom();
+let size=loadSize(); let CANVAS_W=size.w, CANVAS_H=size.h;
+let fixtures=loadFixtures();
+
+function loadSides(){ let s={};try{const p=JSON.parse(localStorage.getItem(SIDE_KEY));if(p&&typeof p==="object")s=p;}catch(e){} return normSides(s); }
+function normSides(src){const o={};for(const n of allIds()){const v=src[n];o[n]=(v==="bride"||v==="groom")?v:"none";}return o;}
+function saveSides(){localStorage.setItem(SIDE_KEY,JSON.stringify(sides));}
+function sideClass(n){ return sides[n]==="bride"?" side-bride":sides[n]==="groom"?" side-groom":""; }
+
+function loadFixtures(){ try{const f=JSON.parse(localStorage.getItem(FIX_KEY));if(f&&typeof f==="object")return normFix(f);}catch(e){} return normFix({}); }
+function normFix(src){const o={};for(const k of Object.keys(DEFAULT_FIX)){const d=DEFAULT_FIX[k],s=src[k]||{};
+  o[k]={x:s.x!=null?+s.x:d.x, y:s.y!=null?+s.y:d.y, w:s.w!=null?Math.max(80,+s.w):d.w, h:s.h!=null?Math.max(40,+s.h):d.h, label:s.label!=null?String(s.label):d.label};}return o;}
+function saveFix(){localStorage.setItem(FIX_KEY,JSON.stringify(fixtures));}
+function applyFixtures(){ for(const k in fixtures){const el=document.getElementById(k);if(!el)continue;const f=fixtures[k];
+  el.style.left=f.x+"px"; el.style.top=f.y+"px"; el.style.width=f.w+"px"; el.style.height=f.h+"px";
+  el.querySelector(".fx-label").textContent=f.label;} }
+
+function loadSeats(){ try{const s=JSON.parse(localStorage.getItem(SEAT_KEY));if(s&&typeof s==="object")return normSeats(s);}catch(e){} return normSeats(DEFAULT);}
+function normSeats(src){const t={};for(const k in src){const n=+k;if(Number.isInteger(n)&&n>=1&&Array.isArray(src[k]))t[n]=src[k].slice();}return t;}
+function saveSeats(){localStorage.setItem(SEAT_KEY,JSON.stringify(tables));}
+
+function loadPos(){ try{const p=JSON.parse(localStorage.getItem(POS_KEY));if(p&&typeof p==="object")return normPos(p);}catch(e){} return normPos(DEFAULT_POS);}
+function normPos(src){const p={};for(const n of allIds()){const d=DEFAULT_POS[n]||{x:20,y:20},s=src[n]||{};
+  p[n]={x:s.x!=null?+s.x:d.x, y:s.y!=null?+s.y:d.y, rot:s.rot!=null?+s.rot:(d.rot||0)};} return p;}
+function savePos(){localStorage.setItem(POS_KEY,JSON.stringify(positions));}
+
+function loadShapes(){ try{const s=JSON.parse(localStorage.getItem(SHAPE_KEY));if(s&&typeof s==="object")return normShapes(s);}catch(e){} return normShapes(DEFAULT_SHAPE);}
+function normShapes(src){const o={};for(const n of allIds()){const v=src[n]!=null?src[n]:DEFAULT_SHAPE[n];o[n]=(v==="rect")?"rect":"round";}return o;}
+function saveShapes(){localStorage.setItem(SHAPE_KEY,JSON.stringify(shapes));}
+
+function loadCaps(){ let s={};try{const p=JSON.parse(localStorage.getItem(CAP_KEY));if(p&&typeof p==="object")s=p;}catch(e){} return normCaps(s);}
+function normCaps(src){const o={};for(const n of allIds())o[n]=(src[n]!=null&&+src[n]>0)?+src[n]:capOf(n);return o;}
+function saveCaps(){localStorage.setItem(CAP_KEY,JSON.stringify(caps));}
+
+function loadLabels(){ let s={};try{const p=JSON.parse(localStorage.getItem(LABEL_KEY));if(p&&typeof p==="object")s=p;}catch(e){} return normLabels(s);}
+function normLabels(src){const o={};for(const n of allIds())o[n]=(src[n]&&String(src[n]).trim())?String(src[n]):("Սեղան "+n);return o;}
+function saveLabels(){localStorage.setItem(LABEL_KEY,JSON.stringify(labels));}
+
+function loadZoom(){ const z=parseFloat(localStorage.getItem(ZOOM_KEY)); return (z>=0.4&&z<=1.6)?z:0.75; }
+
+function loadSize(){ try{const s=JSON.parse(localStorage.getItem(SIZE_KEY));if(s&&+s.w>0&&+s.h>0)return{w:clampW(+s.w),h:clampH(+s.h)};}catch(e){} return {w:DEF_W,h:DEF_H}; }
+function clampW(w){return Math.max(600,Math.min(6000,Math.round(w)));}
+function clampH(h){return Math.max(600,Math.min(8000,Math.round(h)));}
+function saveSize(){localStorage.setItem(SIZE_KEY,JSON.stringify({w:CANVAS_W,h:CANVAS_H}));}
+
+function saveAll(){ saveSeats(); savePos(); saveShapes(); saveCaps(); saveLabels(); saveSides(); }
+
+/* ---------- rendering ---------- */
+function guestChip(n,i,g,style){
+  return `<div class="guest" draggable="true" data-table="${n}" data-index="${i}"${style?` style="${style}"`:""}>`+
+         `<span class="gi">${i+1}</span><span class="gname">${escapeHTML(g)}</span><span class="del" title="Ջնջել հյուրին">✕</span></div>`;
+}
+function cardHTML(n){
+  const cap=caps[n]||capOf(n), guests=tables[n], cnt=guests.length, over=cnt>cap?" over":"";
+  const shape=shapes[n]||"round";
+  const label=labels[n]||("Սեղան "+n);
+  const shapeBtn=`<div class="shape-btn" title="Փոխել ձևը">${shape==="rect"?"⬤":"▭"}</div>`;
+  const menuBtn=`<div class="menu-btn" title="Սեղանի գործողություններ">⋮</div>`;
+
+  if(shape==="rect"){ // rectangle banquet table — names on both long sides
+    const perSide=Math.max(1,Math.ceil(Math.max(cnt,2)/2));
+    const W=Math.max(240, 70+perSide*74);
+    const seatHTML=guests.map((g,i)=>{
+      const side=i%2, slot=Math.floor(i/2);
+      const x=(slot+0.5)/perSide*100, y=side===0?12:88;
+      return guestChip(n,i,g,`left:${x.toFixed(2)}%;top:${y}%`);
+    }).join("");
+    return `<div class="table rect${sideClass(n)}" data-table="${n}">
+        <div class="rot-handle"></div>${shapeBtn}${menuBtn}
+        <div class="long-wrap dropzone handle" data-table="${n}" title="${escapeHTML(label)}" style="width:${W}px">
+          <div class="long-surface"><div class="badge sq">${n}</div><span class="surf-title">${escapeHTML(label)}</span><div class="count${over}">${cnt}/${cap}</div></div>
+          ${seatHTML||`<div class="empty-note round-empty">դատարկ</div>`}
+        </div></div>`;
+  }
+
+  const R=41; // round table
+  const seatHTML=guests.map((g,i)=>{
+    const a=(-90+i*360/Math.max(cnt,1))*Math.PI/180;
+    return guestChip(n,i,g,`left:${(50+R*Math.cos(a)).toFixed(2)}%;top:${(50+R*Math.sin(a)).toFixed(2)}%`);
+  }).join("");
+  return `<div class="table round${sideClass(n)}" data-table="${n}">
+      <div class="rot-handle"></div>${shapeBtn}${menuBtn}
+      <div class="round-wrap dropzone handle" data-table="${n}" title="${escapeHTML(label)}">
+        <div class="round-center"><div class="badge">${n}</div><div class="count${over}">${cnt}/${cap}</div></div>
+        ${seatHTML||`<div class="empty-note round-empty">դատարկ</div>`}
+      </div></div>`;
+}
+function render(){
+  const host=document.getElementById("tables");
+  let html=""; for(const i of allIds()) html+=cardHTML(i);
+  host.innerHTML=html;
+  host.querySelectorAll(".table").forEach(card=>{
+    const p=positions[+card.dataset.table]||{x:20,y:20,rot:0};
+    card.style.left=p.x+"px"; card.style.top=p.y+"px"; card.style.transform=`rotate(${p.rot||0}deg)`;
+  });
+  let total=0; for(const i of allIds()) total+=tables[i].length;
+  document.getElementById("stat").textContent=`Ընդամենը ${total} հյուր · ${allIds().length} սեղան · ${countUsed()} զբաղված`;
+  for(const id of [...selected]) if(!tables[id]) selected.delete(id);
+  applySelection();
+  applySearch();
+}
+function countUsed(){let c=0;for(const i of allIds())if(tables[i].length)c++;return c;}
+function escapeHTML(s){return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
+
+/* ---------- zoom & room size ---------- */
+const canvas=document.getElementById("canvas"), wrap=document.getElementById("canvasWrap"), venue=document.querySelector(".venue");
+function applyZoom(){
+  canvas.style.transform=`scale(${zoom})`;
+  wrap.style.width=(CANVAS_W*zoom)+"px"; wrap.style.height=(CANVAS_H*zoom)+"px";
+  document.getElementById("zoomLbl").textContent=Math.round(zoom*100)+"%";
+  localStorage.setItem(ZOOM_KEY,zoom);
+}
+function setZoom(z){ zoom=Math.max(0.4,Math.min(1.6,Math.round(z*100)/100)); applyZoom(); }
+document.getElementById("zoomIn").onclick =()=>setZoom(zoom+0.1);
+document.getElementById("zoomOut").onclick=()=>setZoom(zoom-0.1);
+
+function applySize(){
+  canvas.style.width=CANVAS_W+"px"; canvas.style.height=CANVAS_H+"px";
+  document.getElementById("wLbl").textContent=CANVAS_W;
+  document.getElementById("hLbl").textContent=CANVAS_H;
+  applyZoom();
+}
+function setSize(w,h){ CANVAS_W=clampW(w); CANVAS_H=clampH(h); saveSize(); applySize(); }
+document.getElementById("wPlus").onclick =()=>setSize(CANVAS_W+200,CANVAS_H);
+document.getElementById("wMinus").onclick=()=>setSize(CANVAS_W-200,CANVAS_H);
+document.getElementById("hPlus").onclick =()=>setSize(CANVAS_W,CANVAS_H+200);
+document.getElementById("hMinus").onclick=()=>setSize(CANVAS_W,CANVAS_H-200);
+
+/* ---------- guest drag & drop (HTML5 DnD) ---------- */
+let drag=null;
+document.addEventListener("dragstart", e=>{
+  const g=e.target.closest(".guest"); if(!g) return;
+  drag={fromTable:+g.dataset.table, fromIndex:+g.dataset.index};
+  g.classList.add("dragging"); e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain","g");
+});
+document.addEventListener("dragend", e=>{const g=e.target.closest(".guest");if(g)g.classList.remove("dragging");clearMarks();drag=null;});
+document.addEventListener("dragover", e=>{
+  if(!drag) return; const z=e.target.closest(".dropzone"); if(!z) return;
+  e.preventDefault(); clearMarks(); z.classList.add("dragover");
+  const og=e.target.closest(".guest"); if(og) og.classList.add("dropbefore");
+});
+document.addEventListener("drop", e=>{
+  if(!drag) return; const z=e.target.closest(".dropzone"); if(!z) return;
+  e.preventDefault();
+  const toTable=+z.dataset.table, og=e.target.closest(".guest");
+  let toIndex=og?+og.dataset.index:tables[toTable].length;
+  moveGuest(drag.fromTable,drag.fromIndex,toTable,toIndex);
+});
+function moveGuest(fromT,fromI,toT,toI){
+  const [g]=tables[fromT].splice(fromI,1); if(g===undefined) return;
+  if(fromT===toT && fromI<toI) toI--;
+  if(toI==null||toI>tables[toT].length) toI=tables[toT].length;
+  tables[toT].splice(toI,0,g); saveSeats(); render();
+}
+function clearMarks(){
+  document.querySelectorAll(".dropzone.dragover").forEach(s=>s.classList.remove("dragover"));
+  document.querySelectorAll(".guest.dropbefore").forEach(s=>s.classList.remove("dropbefore"));
+}
+
+/* ---------- move & rotate tables (pointer, zoom-aware) ---------- */
+let act=null;
+function localPt(e){ const r=canvas.getBoundingClientRect(); return {x:(e.clientX-r.left)/zoom, y:(e.clientY-r.top)/zoom}; }
+
+/* ---- multi-select state & helpers ---- */
+let selected=new Set(); let marqueeEl=null;
+function tableEl(id){ return document.querySelector(`.table[data-table="${id}"]`); }
+function tableRect(n){ const el=tableEl(n); return el?{x:el.offsetLeft,y:el.offsetTop,w:el.offsetWidth,h:el.offsetHeight}:null; }
+function normRect(ax,ay,bx,by){ return {x:Math.min(ax,bx),y:Math.min(ay,by),w:Math.abs(ax-bx),h:Math.abs(ay-by)}; }
+function rectsIntersect(a,b){ return a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y; }
+function markSelected(set){ document.querySelectorAll("#tables .table").forEach(c=>c.classList.toggle("selected", set.has(+c.dataset.table))); }
+function applySelection(){ markSelected(selected); }
+function clearSelection(){ selected=new Set(); markSelected(selected); }
+function updateMarquee(ax,ay,bx,by){ const r=normRect(ax,ay,bx,by); marqueeEl.style.left=r.x+"px"; marqueeEl.style.top=r.y+"px"; marqueeEl.style.width=r.w+"px"; marqueeEl.style.height=r.h+"px"; }
+canvas.addEventListener("pointerdown", e=>{
+  if(e.button!==0) return;
+  const fx=e.target.closest(".fixture");
+  if(fx){
+    const p=localPt(e), id=fx.id, h=e.target.closest(".fx-h");
+    if(h){ const dir=h.className.replace("fx-h","").trim();
+      act={type:"fixresize", el:fx, id, dir, sx:p.x, sy:p.y, x0:fx.offsetLeft, y0:fx.offsetTop, w0:fx.offsetWidth, h0:fx.offsetHeight}; }
+    else { act={type:"fixmove", el:fx, id, dx:p.x-fx.offsetLeft, dy:p.y-fx.offsetTop}; }
+    fx.classList.add("moving"); canvas.setPointerCapture(e.pointerId); e.preventDefault(); return;
+  }
+  const card=e.target.closest(".table");
+  if(!card){ // empty canvas → marquee box-select
+    if(e.target.closest(".guest")) return;
+    const p=localPt(e);
+    act={type:"marquee", x0:p.x, y0:p.y, base:e.shiftKey?new Set(selected):new Set(), live:null};
+    marqueeEl=document.createElement("div"); marqueeEl.className="marquee"; canvas.appendChild(marqueeEl);
+    updateMarquee(p.x,p.y,p.x,p.y); markSelected(act.base);
+    canvas.setPointerCapture(e.pointerId); e.preventDefault(); return;
+  }
+  const n=+card.dataset.table, p=localPt(e);
+  if(e.target.closest(".rot-handle")){
+    const cx=card.offsetLeft+card.offsetWidth/2, cy=card.offsetTop+card.offsetHeight/2;
+    act={type:"rot", card, n, cx, cy};
+    card.classList.add("rotating");
+  } else {
+    if(e.target.closest(".guest")) return;      // guest reseat handled by HTML5 DnD
+    if(e.target.closest(".menu-btn")||e.target.closest(".shape-btn")) return; // buttons handled by click
+    if(!e.target.closest(".handle")) return;
+    if(e.shiftKey){ // shift-click toggles this table in the selection
+      if(selected.has(n)) selected.delete(n); else selected.add(n);
+      applySelection(); return;
+    }
+    if(selected.has(n) && selected.size>1){ // drag the whole selected group together
+      act={type:"groupmove", sx:p.x, sy:p.y, items:[]};
+      let minX=Infinity,minY=Infinity,maxR=-Infinity,maxB=-Infinity;
+      for(const id of selected){ const r=tableRect(id); if(!r) continue;
+        act.items.push({id,x:r.x,y:r.y});
+        minX=Math.min(minX,r.x); minY=Math.min(minY,r.y); maxR=Math.max(maxR,r.x+r.w); maxB=Math.max(maxB,r.y+r.h);
+        const el=tableEl(id); if(el) el.classList.add("moving"); }
+      act.minDx=-minX; act.maxDx=CANVAS_W-maxR; act.minDy=-minY; act.maxDy=CANVAS_H-maxB;
+    } else {
+      if(!selected.has(n)) clearSelection();
+      act={type:"move", card, n, dx:p.x-card.offsetLeft, dy:p.y-card.offsetTop};
+      card.classList.add("moving");
+    }
+  }
+  canvas.setPointerCapture(e.pointerId); e.preventDefault();
+});
+canvas.addEventListener("pointermove", e=>{
+  if(!act) return; const p=localPt(e);
+  if(act.type==="marquee"){
+    updateMarquee(act.x0,act.y0,p.x,p.y);
+    const r=normRect(act.x0,act.y0,p.x,p.y), live=new Set(act.base);
+    for(const n of allIds()){ const tr=tableRect(n); if(tr && rectsIntersect(r,tr)) live.add(n); }
+    act.live=live; markSelected(live);
+  } else if(act.type==="groupmove"){
+    let dx=Math.max(act.minDx,Math.min(p.x-act.sx,act.maxDx));
+    let dy=Math.max(act.minDy,Math.min(p.y-act.sy,act.maxDy));
+    act.dx=dx; act.dy=dy;
+    for(const it of act.items){ const el=tableEl(it.id); if(el){ el.style.left=(it.x+dx)+"px"; el.style.top=(it.y+dy)+"px"; } }
+  } else if(act.type==="fixmove"){
+    let x=Math.max(0,Math.min(p.x-act.dx, CANVAS_W-act.el.offsetWidth));
+    let y=Math.max(0,Math.min(p.y-act.dy, CANVAS_H-act.el.offsetHeight));
+    act.el.style.left=x+"px"; act.el.style.top=y+"px"; act.x=x; act.y=y;
+  } else if(act.type==="fixresize"){
+    const dx=p.x-act.sx, dy=p.y-act.sy, d=act.dir;
+    let x=act.x0, y=act.y0, w=act.w0, h=act.h0;
+    if(d.includes("e")) w=act.w0+dx;
+    if(d.includes("s")) h=act.h0+dy;
+    if(d.includes("w")){ w=act.w0-dx; x=act.x0+dx; }
+    if(d.includes("n")){ h=act.h0-dy; y=act.y0+dy; }
+    if(w<80){ if(d.includes("w")) x=act.x0+act.w0-80; w=80; }
+    if(h<40){ if(d.includes("n")) y=act.y0+act.h0-40; h=40; }
+    if(x<0){ w+=x; x=0; } if(y<0){ h+=y; y=0; }
+    if(x+w>CANVAS_W) w=CANVAS_W-x; if(y+h>CANVAS_H) h=CANVAS_H-y;
+    act.el.style.left=x+"px"; act.el.style.top=y+"px"; act.el.style.width=w+"px"; act.el.style.height=h+"px";
+    act.x=x; act.y=y; act.w=w; act.h=h;
+  } else if(act.type==="move"){
+    let x=Math.max(0,Math.min(p.x-act.dx, CANVAS_W-act.card.offsetWidth));
+    let y=Math.max(0,Math.min(p.y-act.dy, CANVAS_H-act.card.offsetHeight));
+    act.card.style.left=x+"px"; act.card.style.top=y+"px"; act.x=x; act.y=y;
+  } else {
+    let ang=Math.atan2(p.y-act.cy, p.x-act.cx)*180/Math.PI + 90;
+    if(e.shiftKey) ang=Math.round(ang/15)*15;          // hold Shift to snap to 15°
+    ang=Math.round(ang); act.ang=ang;
+    act.card.style.transform=`rotate(${ang}deg)`;
+  }
+});
+function endAct(){
+  if(!act) return;
+  if(act.type==="marquee"){
+    if(marqueeEl){ marqueeEl.remove(); marqueeEl=null; }
+    selected=act.live||act.base||new Set(); applySelection(); act=null; return;
+  }
+  if(act.type==="groupmove"){
+    const dx=act.dx||0, dy=act.dy||0;
+    for(const it of act.items){ positions[it.id].x=Math.round(it.x+dx); positions[it.id].y=Math.round(it.y+dy);
+      const el=tableEl(it.id); if(el) el.classList.remove("moving"); }
+    savePos(); act=null; return;
+  }
+  if(act.type==="fixmove"||act.type==="fixresize"){
+    const f=fixtures[act.id];
+    if(act.x!=null) f.x=Math.round(act.x); if(act.y!=null) f.y=Math.round(act.y);
+    if(act.w!=null) f.w=Math.round(act.w); if(act.h!=null) f.h=Math.round(act.h);
+    act.el.classList.remove("moving"); saveFix(); act=null; return;
+  }
+  const pos=positions[act.n];
+  if(act.type==="move"){ pos.x=parseFloat(act.card.style.left); pos.y=parseFloat(act.card.style.top); }
+  else if(act.ang!=null){ pos.rot=act.ang; }
+  act.card.classList.remove("moving","rotating"); savePos(); act=null;
+}
+canvas.addEventListener("pointerup", endAct);
+canvas.addEventListener("pointercancel", endAct);
+
+/* ---------- table & guest operations ---------- */
+function addTable(){
+  const ids=allIds(); const n=(ids.length?Math.max(...ids):0)+1;
+  tables[n]=[];
+  let x=(venue.scrollLeft+venue.clientWidth/2)/zoom-100;
+  let y=(venue.scrollTop+venue.clientHeight/2)/zoom-100;
+  x=Math.max(0,Math.min(x,CANVAS_W-220)); y=Math.max(0,Math.min(y,CANVAS_H-220));
+  positions[n]={x:Math.round(x),y:Math.round(y),rot:0};
+  shapes[n]="round"; caps[n]=12; labels[n]="Սեղան "+n; sides[n]="none";
+  saveAll(); render();
+}
+function deleteTable(n){
+  const cnt=tables[n].length;
+  const nm=labels[n]||("Սեղան "+n);
+  const msg=cnt? `Ջնջե՞լ «${nm}»-ը՝ ${cnt} հյուրով։ Հյուրերն էլ կջնջվեն։` : `Ջնջե՞լ «${nm}»-ը։`;
+  if(!confirm(msg)) return;
+  delete tables[n]; delete positions[n]; delete shapes[n]; delete caps[n]; delete labels[n]; delete sides[n];
+  saveAll(); render();
+}
+function emptyTable(n){
+  if(!tables[n].length) return;
+  if(confirm(`Հեռացնե՞լ «${labels[n]||("Սեղան "+n)}»-ի բոլոր ${tables[n].length} հյուրերին։`)){
+    tables[n]=[]; saveSeats(); render();
+  }
+}
+function transferAll(from){
+  if(!tables[from].length){ alert("Այս սեղանը դատարկ է։"); return; }
+  chooseTable("Տեղափոխել բոլոր հյուրերին →", from, to=>{
+    tables[to]=tables[to].concat(tables[from]); tables[from]=[]; saveSeats(); render();
+  });
+}
+function swapTables(from){
+  chooseTable("Փոխանակել հյուրերը սեղանի հետ →", from, to=>{
+    const tmp=tables[from]; tables[from]=tables[to]; tables[to]=tmp; saveSeats(); render();
+  });
+}
+function addGuest(n){
+  const v=prompt("Ավելացնել հյուր(եր) (մի քանիսը՝ ստորակետով կամ նոր տողով)","");
+  if(v==null) return;
+  v.split(/[,\n]/).map(s=>s.trim()).filter(Boolean).forEach(g=>tables[n].push(g));
+  saveSeats(); render();
+}
+function renameTable(n){
+  const v=prompt("Սեղանի անունը", labels[n]||("Սեղան "+n));
+  if(v==null) return;
+  labels[n]=v.trim()||("Սեղան "+n); saveLabels(); render();
+}
+function setCap(n){
+  const v=prompt("Տեղերի քանակ այս սեղանի համար", caps[n]||capOf(n));
+  if(v==null) return;
+  const c=parseInt(v,10); if(c>0){ caps[n]=c; saveCaps(); render(); }
+}
+function deleteGuest(n,i){ tables[n].splice(i,1); saveSeats(); render(); }
+function renameGuest(n,i){
+  const v=prompt("Հյուրի անունը", tables[n][i]);
+  if(v==null) return;
+  const t=v.trim(); if(t){ tables[n][i]=t; saveSeats(); render(); }
+}
+
+/* ---------- target-table chooser modal ---------- */
+function chooseTable(title,exclude,cb){
+  const ids=allIds().filter(x=>x!==exclude);
+  if(!ids.length){ alert("Այլ սեղան չկա։"); return; }
+  const bg=document.createElement("div"); bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal"><h3>${escapeHTML(title)}</h3>
+    <label>Ընտրիր սեղանը</label>
+    <select>${ids.map(i=>`<option value="${i}">${escapeHTML(labels[i]||("Սեղան "+i))} (${tables[i].length}/${caps[i]||capOf(i)})</option>`).join("")}</select>
+    <div class="row"><button class="cancel">Չեղարկել</button><button class="ok">Հաստատել</button></div></div>`;
+  document.body.appendChild(bg);
+  const close=()=>bg.remove();
+  bg.querySelector(".cancel").onclick=close;
+  bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
+  bg.querySelector(".ok").onclick=()=>{ const to=+bg.querySelector("select").value; close(); cb(to); };
+}
+
+/* ---------- per-table popover menu ---------- */
+let menuEl=null;
+function closeMenu(){ if(menuEl){ menuEl.remove(); menuEl=null; } }
+function openMenu(n,btn){
+  closeMenu();
+  const m=document.createElement("div"); m.className="popmenu"; menuEl=m;
+  m.innerHTML=`
+    <button data-a="add">➕ Ավելացնել հյուր</button>
+    <button data-a="rename">✏️ Վերանվանել սեղանը</button>
+    <button data-a="cap">🔢 Տեղերի քանակ (${caps[n]||capOf(n)})</button>
+    <hr>
+    <button data-a="transfer">⤴️ Տեղափոխել բոլոր հյուրերին</button>
+    <button data-a="swap">🔄 Փոխանակել հյուրերը</button>
+    <hr>
+    <button data-a="bride">👰 Հարսի կողմ ${sides[n]==="bride"?"•":""}</button>
+    <button data-a="groom">🤵 Փեսայի կողմ ${sides[n]==="groom"?"•":""}</button>
+    <button data-a="noside">⚪ Առանց կողմի ${(sides[n]==="none"||!sides[n])?"•":""}</button>
+    <hr>
+    <button data-a="empty" class="danger">🧹 Դատարկել սեղանը</button>
+    <button data-a="delete" class="danger">🗑️ Ջնջել սեղանը</button>`;
+  document.body.appendChild(m);
+  const r=btn.getBoundingClientRect();
+  m.style.left=Math.max(8,Math.min(r.left,window.innerWidth-m.offsetWidth-8))+"px";
+  m.style.top=Math.min(r.bottom+4,window.innerHeight-m.offsetHeight-8)+"px";
+  m.addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return; const a=b.dataset.a; closeMenu();
+    if(a==="add") addGuest(n);
+    else if(a==="rename") renameTable(n);
+    else if(a==="cap") setCap(n);
+    else if(a==="transfer") transferAll(n);
+    else if(a==="swap") swapTables(n);
+    else if(a==="bride") setSide(n,"bride");
+    else if(a==="groom") setSide(n,"groom");
+    else if(a==="noside") setSide(n,"none");
+    else if(a==="empty") emptyTable(n);
+    else if(a==="delete") deleteTable(n);
+  });
+}
+document.addEventListener("pointerdown",e=>{
+  if(menuEl && !e.target.closest(".popmenu") && !e.target.closest(".menu-btn")) closeMenu();
+},true);
+
+/* ---------- card click / dblclick delegation ---------- */
+document.getElementById("tables").addEventListener("click", e=>{
+  const sb=e.target.closest(".shape-btn"); if(sb){ e.stopPropagation(); toggleShape(+sb.closest(".table").dataset.table); return; }
+  const mb=e.target.closest(".menu-btn"); if(mb){ e.stopPropagation(); openMenu(+mb.closest(".table").dataset.table, mb); return; }
+  const del=e.target.closest(".del"); if(del){ e.stopPropagation(); const g=del.closest(".guest"); deleteGuest(+g.dataset.table,+g.dataset.index); return; }
+});
+document.getElementById("tables").addEventListener("dblclick", e=>{
+  const g=e.target.closest(".guest"); if(!g) return;
+  e.preventDefault(); renameGuest(+g.dataset.table,+g.dataset.index);
+});
+function toggleShape(n){ shapes[n]=shapes[n]==="rect"?"round":"rect"; saveShapes(); render(); }
+function setSide(n,s){ sides[n]=s; saveSides(); render(); }
+
+/* ---------- fixture rename ---------- */
+canvas.addEventListener("dblclick", e=>{
+  const fx=e.target.closest(".fixture"); if(!fx) return;
+  e.preventDefault(); const f=fixtures[fx.id];
+  const v=prompt("Անվանումը", f.label); if(v==null) return;
+  f.label=v.trim()||f.label; saveFix(); applyFixtures();
+});
+
+/* ---------- stats ---------- */
+function showStats(){
+  const ids=allIds();
+  let guests=0, seats=0, empty=0, occ=0; const over=[];
+  let maxT=null, minT=null;
+  const bySide={bride:{g:0,t:0,s:0}, groom:{g:0,t:0,s:0}, none:{g:0,t:0,s:0}};
+  for(const i of ids){
+    const c=tables[i].length, cap=caps[i]||capOf(i);
+    guests+=c; seats+=cap; if(c) occ++; else empty++;
+    if(c>cap) over.push(i);
+    const sd=bySide[sides[i]]?sides[i]:"none"; bySide[sd].g+=c; bySide[sd].s+=cap; if(c) bySide[sd].t++;
+    if(c>0){ if(maxT==null||c>tables[maxT].length) maxT=i; if(minT==null||c<tables[minT].length) minT=i; }
+  }
+  // duplicate guest names across all tables
+  const seen={}, dups={};
+  for(const i of ids) for(const g of tables[i]){ const k=g.trim().toLowerCase(); if(!k) continue; (seen[k]=seen[k]||[]).push({n:i,name:g}); }
+  for(const k in seen) if(seen[k].length>1) dups[k]=seen[k];
+  const fill = seats? Math.round(guests/seats*100)+"%" : "—";
+
+  const rows=[
+    ["👥 Հյուրեր ընդամենը", guests],
+    ["🪑 Տեղեր ընդամենը", seats],
+    ["✅ Ազատ տեղեր", Math.max(0,seats-guests)],
+    ["📈 Լրացվածություն", fill],
+    ["🍽️ Սեղաններ", ids.length],
+    ["🟢 Զբաղված սեղաններ", occ],
+    ["⚪ Դատարկ սեղաններ", empty],
+  ];
+  if(maxT!=null) rows.push(["⬆️ Ամենաշատ զբաղված", `${labels[maxT]||("Սեղան "+maxT)} — ${tables[maxT].length}`]);
+  if(minT!=null) rows.push(["⬇️ Ամենաքիչ զբաղված", `${labels[minT]||("Սեղան "+minT)} — ${tables[minT].length}`]);
+
+  let body=`<table style="width:100%;border-collapse:collapse;font-size:13px">`+
+    rows.map(r=>`<tr><td style="padding:6px 4px;border-bottom:1px solid #eee">${r[0]}</td><td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${escapeHTML(String(r[1]))}</td></tr>`).join("")+
+    `</table>`;
+
+  const sideRow=(emo,name,o)=>`<tr><td style="padding:6px 4px;border-bottom:1px solid #eee">${emo} ${name}</td><td style="padding:6px 4px;border-bottom:1px solid #eee;text-align:right;font-weight:700">${o.g} հյուր · ${o.t} սեղ · ${o.s} տեղ</td></tr>`;
+  body+=`<p style="margin:12px 0 4px;font-weight:700;font-size:13px">Ըստ կողմերի</p>`+
+    `<table style="width:100%;border-collapse:collapse;font-size:13px">`+
+    sideRow("👰","Հարսի կողմ",bySide.bride)+
+    sideRow("🤵","Փեսայի կողմ",bySide.groom)+
+    sideRow("⚪","Առանց կողմի",bySide.none)+
+    `</table>`;
+
+  if(over.length) body+=`<p style="margin:12px 0 4px;color:var(--warn);font-weight:700;font-size:13px">⚠️ Գերբեռնված սեղաններ (${over.length})</p>`+
+    `<div style="font-size:12px;color:#5c4a3a">`+over.map(i=>`${escapeHTML(labels[i]||("Սեղան "+i))} (${tables[i].length}/${caps[i]||capOf(i)})`).join(", ")+`</div>`;
+
+  const dupKeys=Object.keys(dups);
+  if(dupKeys.length) body+=`<p style="margin:12px 0 4px;color:var(--warn);font-weight:700;font-size:13px">⚠️ Կրկնվող անուններ (${dupKeys.length})</p>`+
+    `<div style="font-size:12px;color:#5c4a3a;max-height:120px;overflow:auto">`+
+    dupKeys.map(k=>`${escapeHTML(dups[k][0].name)} → ${dups[k].map(d=>"#"+d.n).join(", ")}`).join("<br>")+`</div>`;
+
+  const bg=document.createElement("div"); bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal" style="min-width:340px"><h3>📊 Վիճակագրություն</h3>${body}
+    <div class="row"><button class="ok">Փակել</button></div></div>`;
+  document.body.appendChild(bg);
+  const close=()=>bg.remove();
+  bg.querySelector(".ok").onclick=close;
+  bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
+}
+document.getElementById("statsBtn").onclick=showStats;
+
+/* ---------- search ---------- */
+function applySearch(){
+  const q=(document.getElementById("search").value||"").trim().toLowerCase();
+  if(!q) return;
+  document.querySelectorAll("#tables .guest").forEach(g=>{
+    const nm=g.querySelector(".gname"); if(nm && nm.textContent.toLowerCase().includes(q)) g.classList.add("found");
+  });
+}
+document.getElementById("search").addEventListener("input", e=>{
+  const q=e.target.value.trim().toLowerCase();
+  document.querySelectorAll(".guest.found").forEach(g=>g.classList.remove("found"));
+  if(!q) return;
+  let first=null;
+  document.querySelectorAll("#tables .guest").forEach(g=>{
+    const nm=g.querySelector(".gname");
+    if(nm && nm.textContent.toLowerCase().includes(q)){ g.classList.add("found"); if(!first) first=g; }
+  });
+  if(first) first.scrollIntoView({block:"center",inline:"center",behavior:"smooth"});
+});
+
+/* ---------- toolbar buttons ---------- */
+document.getElementById("addTableBtn").onclick=addTable;
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("Վերականգնե՞լ սկզբնական դասավորությունը, սեղանները, չափերը, ձևն ու պտույտը։")){
+    tables=normSeats(DEFAULT); positions=normPos(DEFAULT_POS); shapes=normShapes(DEFAULT_SHAPE);
+    caps=normCaps({}); labels=normLabels({}); sides=normSides({});
+    fixtures=normFix({}); saveFix(); applyFixtures();
+    saveAll(); setSize(DEF_W,DEF_H); render();
+  }
+};
+document.getElementById("printBtn").onclick=()=>window.print();
+document.getElementById("exportBtn").onclick=()=>{
+  let txt="";
+  for(const i of allIds()){ if(!tables[i].length) continue;
+    txt+=`${labels[i]||("Սեղան "+i)} (${tables[i].length}/${caps[i]||capOf(i)})\n`;
+    tables[i].forEach((g,j)=>txt+=`  ${j+1}. ${g}\n`); txt+="\n";
+  }
+  const blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="seghaner.txt"; a.click(); URL.revokeObjectURL(a.href);
+};
+
+applySize();
+applyFixtures();
+render();
+</script>
+</body>
+</html>

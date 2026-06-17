@@ -4,3 +4,10 @@
 node_modules
 dist
 .cache
+
+# Local-only / editor / OS files
+.DS_Store
+.idea/
+.claude/
+.agents/
+Screenshot*.png
