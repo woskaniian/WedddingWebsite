@@ -136,6 +136,10 @@
   .histbox button:hover:not(:disabled){background:rgba(255,255,255,.14)}
   .modal textarea.big{min-height:150px;line-height:1.4}
   .modal .count-hint{font-size:12px;color:#8a7a66;margin-top:8px;min-height:16px}
+  .stat.sync{font-weight:600}
+  .stat.sync.ok{color:#bfe3b0}
+  .stat.sync.saving,.stat.sync.dirty{color:#ffe39a}
+  .stat.sync.off{color:#f3b7a6}
 
   /* ---------- login gate ---------- */
   body.locked{overflow:hidden}
@@ -193,6 +197,7 @@
 <header class="bar">
   <h1>💒 Հարսանյաց սեղաններ</h1>
   <span class="stat" id="stat"></span>
+  <span class="stat sync" id="syncStat" title="Համաժամեցում մյուս սարքերի հետ"></span>
   <span class="spacer"></span>
   <input id="search" class="search" placeholder="🔍 Փնտրել հյուր">
   <button id="addGuestBtn" class="primary">➕ Հյուր ավելացնել</button>
@@ -275,44 +280,44 @@ let fixtures=loadFixtures();
 
 function loadSides(){ let s={};try{const p=JSON.parse(localStorage.getItem(SIDE_KEY));if(p&&typeof p==="object")s=p;}catch(e){} return normSides(s); }
 function normSides(src){const o={};for(const n of allIds()){const v=src[n];o[n]=(v==="bride"||v==="groom")?v:"none";}return o;}
-function saveSides(){localStorage.setItem(SIDE_KEY,JSON.stringify(sides));}
+function saveSides(){localStorage.setItem(SIDE_KEY,JSON.stringify(sides));scheduleSync();}
 function sideClass(n){ return sides[n]==="bride"?" side-bride":sides[n]==="groom"?" side-groom":""; }
 
 function loadFixtures(){ try{const f=JSON.parse(localStorage.getItem(FIX_KEY));if(f&&typeof f==="object")return normFix(f);}catch(e){} return normFix({}); }
 function normFix(src){const o={};for(const k of Object.keys(DEFAULT_FIX)){const d=DEFAULT_FIX[k],s=src[k]||{};
   o[k]={x:s.x!=null?+s.x:d.x, y:s.y!=null?+s.y:d.y, w:s.w!=null?Math.max(80,+s.w):d.w, h:s.h!=null?Math.max(40,+s.h):d.h, label:s.label!=null?String(s.label):d.label};}return o;}
-function saveFix(){localStorage.setItem(FIX_KEY,JSON.stringify(fixtures));}
+function saveFix(){localStorage.setItem(FIX_KEY,JSON.stringify(fixtures));scheduleSync();}
 function applyFixtures(){ for(const k in fixtures){const el=document.getElementById(k);if(!el)continue;const f=fixtures[k];
   el.style.left=f.x+"px"; el.style.top=f.y+"px"; el.style.width=f.w+"px"; el.style.height=f.h+"px";
   el.querySelector(".fx-label").textContent=f.label;} }
 
 function loadSeats(){ try{const s=JSON.parse(localStorage.getItem(SEAT_KEY));if(s&&typeof s==="object")return normSeats(s);}catch(e){} return normSeats(DEFAULT);}
 function normSeats(src){const t={};for(const k in src){const n=+k;if(Number.isInteger(n)&&n>=1&&Array.isArray(src[k]))t[n]=src[k].slice();}return t;}
-function saveSeats(){localStorage.setItem(SEAT_KEY,JSON.stringify(tables));}
+function saveSeats(){localStorage.setItem(SEAT_KEY,JSON.stringify(tables));scheduleSync();}
 
 function loadPos(){ try{const p=JSON.parse(localStorage.getItem(POS_KEY));if(p&&typeof p==="object")return normPos(p);}catch(e){} return normPos(DEFAULT_POS);}
 function normPos(src){const p={};for(const n of allIds()){const d=DEFAULT_POS[n]||{x:20,y:20},s=src[n]||{};
   p[n]={x:s.x!=null?+s.x:d.x, y:s.y!=null?+s.y:d.y, rot:s.rot!=null?+s.rot:(d.rot||0)};} return p;}
-function savePos(){localStorage.setItem(POS_KEY,JSON.stringify(positions));}
+function savePos(){localStorage.setItem(POS_KEY,JSON.stringify(positions));scheduleSync();}
 
 function loadShapes(){ try{const s=JSON.parse(localStorage.getItem(SHAPE_KEY));if(s&&typeof s==="object")return normShapes(s);}catch(e){} return normShapes(DEFAULT_SHAPE);}
 function normShapes(src){const o={};for(const n of allIds()){const v=src[n]!=null?src[n]:DEFAULT_SHAPE[n];o[n]=(v==="rect")?"rect":"round";}return o;}
-function saveShapes(){localStorage.setItem(SHAPE_KEY,JSON.stringify(shapes));}
+function saveShapes(){localStorage.setItem(SHAPE_KEY,JSON.stringify(shapes));scheduleSync();}
 
 function loadCaps(){ let s={};try{const p=JSON.parse(localStorage.getItem(CAP_KEY));if(p&&typeof p==="object")s=p;}catch(e){} return normCaps(s);}
 function normCaps(src){const o={};for(const n of allIds())o[n]=(src[n]!=null&&+src[n]>0)?+src[n]:capOf(n);return o;}
-function saveCaps(){localStorage.setItem(CAP_KEY,JSON.stringify(caps));}
+function saveCaps(){localStorage.setItem(CAP_KEY,JSON.stringify(caps));scheduleSync();}
 
 function loadLabels(){ let s={};try{const p=JSON.parse(localStorage.getItem(LABEL_KEY));if(p&&typeof p==="object")s=p;}catch(e){} return normLabels(s);}
 function normLabels(src){const o={};for(const n of allIds())o[n]=(src[n]&&String(src[n]).trim())?String(src[n]):("Սեղան "+n);return o;}
-function saveLabels(){localStorage.setItem(LABEL_KEY,JSON.stringify(labels));}
+function saveLabels(){localStorage.setItem(LABEL_KEY,JSON.stringify(labels));scheduleSync();}
 
 function loadZoom(){ const z=parseFloat(localStorage.getItem(ZOOM_KEY)); return (z>=0.4&&z<=1.6)?z:0.75; }
 
 function loadSize(){ try{const s=JSON.parse(localStorage.getItem(SIZE_KEY));if(s&&+s.w>0&&+s.h>0)return{w:clampW(+s.w),h:clampH(+s.h)};}catch(e){} return {w:DEF_W,h:DEF_H}; }
 function clampW(w){return Math.max(600,Math.min(6000,Math.round(w)));}
 function clampH(h){return Math.max(600,Math.min(8000,Math.round(h)));}
-function saveSize(){localStorage.setItem(SIZE_KEY,JSON.stringify({w:CANVAS_W,h:CANVAS_H}));}
+function saveSize(){localStorage.setItem(SIZE_KEY,JSON.stringify({w:CANVAS_W,h:CANVAS_H}));scheduleSync();}
 
 function saveAll(){ saveSeats(); savePos(); saveShapes(); saveCaps(); saveLabels(); saveSides(); }
 
@@ -340,6 +345,74 @@ function undo(){ if(!undoStack.length) return; redoStack.push(fullSnapshot()); a
 function redo(){ if(!redoStack.length) return; undoStack.push(fullSnapshot()); applySnapshot(redoStack.pop()); updateHistoryUI(); }
 function updateHistoryUI(){ const u=document.getElementById("undoBtn"), r=document.getElementById("redoBtn");
   if(u) u.disabled=!undoStack.length; if(r) r.disabled=!redoStack.length; }
+
+/* ---------- shared sync (Cloudflare KV via /api/seating) ---------- */
+const SYNC_API="/api/seating";
+const SYNC_TOKEN="P@ssw0rd@123"; // matches login password; set KV_TOKEN env to the same value to lock the API
+let syncRev=0, syncDirty=false, syncBusy=false, syncOnline=false, applyingRemote=false, syncTimer=null, syncPoller=null, conflictShown=false;
+function setSyncStat(txt,cls){ const el=document.getElementById("syncStat"); if(el){ el.textContent=txt; el.className="stat sync "+(cls||""); } }
+function syncHdr(extra){ return Object.assign({ "authorization":"Bearer "+SYNC_TOKEN }, extra||{}); }
+// called from every save*(): debounced push of the whole layout
+function scheduleSync(){
+  if(applyingRemote) return;                 // don't echo back a change we just pulled
+  syncDirty=true; setSyncStat("✎ չպահված…","dirty");
+  clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200);
+}
+async function pushRemote(){
+  if(!syncDirty || syncBusy) return;
+  syncBusy=true; setSyncStat("☁ պահվում…","saving");
+  try{
+    const r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}),
+      body:JSON.stringify({ baseRev:syncRev, data:JSON.parse(fullSnapshot()) }) });
+    if(r.status===409){ syncBusy=false; onConflict(await r.json()); return; }
+    if(!r.ok) throw 0;
+    const j=await r.json(); syncRev=j.rev; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok");
+  }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
+  finally{ syncBusy=false; if(syncDirty && syncOnline){ clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200); } }
+}
+async function pullRemote(){
+  if(syncBusy) return;
+  try{
+    const r=await fetch(SYNC_API,{ headers:syncHdr() });
+    if(r.status===501){ setSyncStat("☁ անջատ","off"); return; }   // KV not bound yet
+    if(!r.ok) throw 0;
+    const j=await r.json(); syncOnline=true;
+    if(j.data==null && (j.rev||0)===0){ if(!syncDirty){ syncRev=0; syncDirty=true; pushRemote(); } return; } // seed empty store
+    if(j.rev>syncRev){ if(syncDirty) onConflict(j); else applyRemote(j); }
+    else if(!syncDirty) setSyncStat("☁ պահված","ok");
+  }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
+}
+function applyRemote(j){
+  if(j.data==null){ syncRev=j.rev||0; return; }
+  applyingRemote=true; try{ applySnapshot(JSON.stringify(j.data)); } finally{ applyingRemote=false; }
+  syncRev=j.rev; syncDirty=false; setSyncStat("⬇ թարմացված","ok");
+}
+function onConflict(j){
+  if(conflictShown) return; conflictShown=true;
+  const bg=document.createElement("div"); bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal" style="min-width:340px"><h3>⚠️ Փոփոխություն մյուս սարքից</h3>
+    <p style="font-size:13px;color:#5c4a3a;margin:0 0 4px">Մյուս սարքում սեղանները թարմացվել են, մինչ դու փոփոխում էիր։ Ո՞ր տարբերակը պահել։</p>
+    <div class="row"><button class="cancel" data-a="mine">Պահել իմը</button><button class="ok" data-a="theirs">Բերել նրանցը</button></div></div>`;
+  document.body.appendChild(bg);
+  const close=()=>{ bg.remove(); conflictShown=false; };
+  bg.querySelector('[data-a="theirs"]').onclick=()=>{ close(); applyRemote(j); };
+  bg.querySelector('[data-a="mine"]').onclick=()=>{ close(); forcePush(j.rev||0); };
+  bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
+}
+async function forcePush(baseRev){
+  syncBusy=true; setSyncStat("☁ պահվում…","saving");
+  try{
+    const r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}),
+      body:JSON.stringify({ baseRev, force:true, data:JSON.parse(fullSnapshot()) }) });
+    if(!r.ok) throw 0; const j=await r.json(); syncRev=j.rev; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok");
+  }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
+  finally{ syncBusy=false; }
+}
+async function syncInit(){
+  setSyncStat("☁ միանում…","");
+  await pullRemote();
+  if(!syncPoller) syncPoller=setInterval(pullRemote,6000);   // pick up the other device's changes
+}
 
 /* ---------- rendering ---------- */
 function guestChip(n,i,g,style){
@@ -868,6 +941,7 @@ applySize();
 applyFixtures();
 render();
 updateHistoryUI();
+syncInit();
 </script>
 </body>
 </html>
