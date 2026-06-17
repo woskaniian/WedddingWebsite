@@ -1,7 +1,7 @@
 // Cloudflare Pages Function — shared storage for the /tables seating plan.
 //
 // Setup (Cloudflare dashboard → your Pages project → Settings → Functions):
-//   1. KV namespace bindings → add binding, Variable name: KV, pick/create a namespace.
+//   1. KV namespace bindings → add binding, Variable name: tables, pick/create a namespace.
 //   2. (optional, for protection) Environment variables → KV_TOKEN = your password.
 //      When set, requests must send "Authorization: Bearer <token>"; when unset, the API is open.
 //
@@ -26,9 +26,9 @@ function authed(request, env) {
 }
 
 export async function onRequestGet({ request, env }) {
-  if (!env.KV) return json({ error: "KV binding 'KV' is missing" }, 501);
+  if (!env.tables) return json({ error: "KV binding 'tables' is missing" }, 501);
   if (!authed(request, env)) return json({ error: "unauthorized" }, 401);
-  const raw = await env.KV.get(KEY);
+  const raw = await env.tables.get(KEY);
   if (!raw) return json({ rev: 0, updatedAt: null, data: null });
   let v;
   try { v = JSON.parse(raw); } catch (e) { v = { rev: 0, data: null }; }
@@ -36,7 +36,7 @@ export async function onRequestGet({ request, env }) {
 }
 
 export async function onRequestPut({ request, env }) {
-  if (!env.KV) return json({ error: "KV binding 'KV' is missing" }, 501);
+  if (!env.tables) return json({ error: "KV binding 'tables' is missing" }, 501);
   if (!authed(request, env)) return json({ error: "unauthorized" }, 401);
 
   let body;
@@ -47,7 +47,7 @@ export async function onRequestPut({ request, env }) {
   const baseRev = Number(body.baseRev) || 0;
   const force = body.force === true;
 
-  const raw = await env.KV.get(KEY);
+  const raw = await env.tables.get(KEY);
   const cur = raw ? JSON.parse(raw) : { rev: 0, data: null };
 
   if (!force && (cur.rev || 0) !== baseRev) {
@@ -56,6 +56,6 @@ export async function onRequestPut({ request, env }) {
   }
 
   const next = { rev: (cur.rev || 0) + 1, updatedAt: new Date().toISOString(), by: String(body.by || ""), data };
-  await env.KV.put(KEY, JSON.stringify(next));
+  await env.tables.put(KEY, JSON.stringify(next));
   return json({ rev: next.rev, updatedAt: next.updatedAt });
 }
