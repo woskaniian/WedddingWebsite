@@ -140,6 +140,8 @@
   .stat.sync.ok{color:#bfe3b0}
   .stat.sync.saving,.stat.sync.dirty{color:#ffe39a}
   .stat.sync.off{color:#f3b7a6}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(10px);background:#3b2f25;color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:99998}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
   /* ---------- login gate ---------- */
   body.locked{overflow:hidden}
@@ -208,8 +210,12 @@
   <div class="sizebox" title="Սրահի լայնք (px)"><b>W</b><button id="wMinus">−</button><span id="wLbl">0</span><button id="wPlus">+</button></div>
   <div class="sizebox" title="Սրահի երկարք (px)"><b>H</b><button id="hMinus">−</button><span id="hLbl">0</span><button id="hPlus">+</button></div>
   <div class="zoombox"><button id="zoomOut">−</button><span id="zoomLbl">75%</span><button id="zoomIn">+</button></div>
+  <button id="saveBtn" class="ghost" title="Պահել հիմա (Ctrl/⌘+S)">💾 Պահել</button>
   <button id="printBtn" class="ghost">🖨 Տպել</button>
-  <button id="exportBtn" class="ghost">⬇ Արտահանել</button>
+  <button id="exportBtn" class="ghost" title="Ներբեռնել անունների ցուցակը (տեքստ)">⬇ Ցուցակ</button>
+  <button id="backupBtn" class="ghost" title="Ներբեռնել ամբողջ դասավորությունը (JSON պահուստ)">🗂 Պահուստ</button>
+  <button id="importBtn" class="ghost" title="Վերականգնել պահուստից (JSON)">⬆ Ներմուծել</button>
+  <input id="importFile" type="file" accept="application/json,.json" hidden>
   <span class="hint">Քաշիր սեղանը՝ տեղափոխելու · ⟳ պտտել · քաշիր անունը՝ այլ սեղան տեղափոխելու · ⋮ սեղանի մենյու · կրկնակ սեղմում անվան վրա՝ վերանվանել · քաշիր դատարկ տարածքում՝ մի քանի սեղան ընտրելու · <b>Ctrl+Z</b>՝ հետարկել, <b>Ctrl+Shift+Z</b>՝ կրկնել</span>
 </header>
 
@@ -412,6 +418,36 @@ async function syncInit(){
   setSyncStat("☁ միանում…","");
   await pullRemote();
   if(!syncPoller) syncPoller=setInterval(pullRemote,6000);   // pick up the other device's changes
+}
+
+/* ---------- manual save · backup · restore ---------- */
+function saveNow(){ clearTimeout(syncTimer); syncDirty=true; pushRemote(); toast("💾 Պահված"); }
+function exportJSON(){
+  const payload={ app:"wedding-tables", version:6, exportedAt:new Date().toISOString(), data:JSON.parse(fullSnapshot()) };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download="seating-backup-"+new Date().toISOString().slice(0,10)+".json"; a.click(); URL.revokeObjectURL(a.href);
+  toast("🗂 Պահուստը ներբեռնված է");
+}
+function importJSON(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let p; try{ p=JSON.parse(reader.result); }catch(err){ alert("Սխալ ֆայլ՝ վավեր JSON չէ։"); return; }
+    const data = p && (p.data ? p.data : (p.tables ? p : null));
+    if(!data || typeof data!=="object" || typeof data.tables!=="object"){ alert("Ֆայլը չի պարունակում սեղանների տվյալներ։"); return; }
+    if(!confirm("Ներմուծե՞լ պահուստը։ Ընթացիկ դասավորությունը կփոխարինվի։ (Հետարկելի է Ctrl+Z-ով)")) return;
+    pushUndo();
+    applySnapshot(JSON.stringify(data));   // saves locally, re-renders, and syncs to the shared store
+    toast("⬆ Պահուստը ներմուծված է");
+  };
+  reader.readAsText(file);
+}
+let toastTimer=null;
+function toast(msg){
+  let el=document.getElementById("toast");
+  if(!el){ el=document.createElement("div"); el.id="toast"; el.className="toast"; document.body.appendChild(el); }
+  el.textContent=msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),1600);
 }
 
 /* ---------- rendering ---------- */
@@ -916,6 +952,10 @@ document.getElementById("addTableBtn").onclick=addTable;
 document.getElementById("addGuestBtn").onclick=()=>openAddGuest(null);
 document.getElementById("undoBtn").onclick=undo;
 document.getElementById("redoBtn").onclick=redo;
+document.getElementById("saveBtn").onclick=saveNow;
+document.getElementById("backupBtn").onclick=exportJSON;
+document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
+document.getElementById("importFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) importJSON(f); e.target.value=""; });
 document.getElementById("printBtn").onclick=()=>window.print();
 document.getElementById("exportBtn").onclick=()=>{
   let txt="";
@@ -931,7 +971,9 @@ document.getElementById("exportBtn").onclick=()=>{
 document.addEventListener("keydown", e=>{
   if(e.key==="Escape"){ closeMenu(); const ms=document.querySelectorAll(".modal-bg"); if(ms.length) ms[ms.length-1].remove(); return; }
   if(!(e.ctrlKey||e.metaKey)) return;
-  const k=(e.key||"").toLowerCase(); if(k!=="z"&&k!=="y") return;
+  const k=(e.key||"").toLowerCase();
+  if(k==="s"){ e.preventDefault(); saveNow(); return; }   // Ctrl/⌘+S → save now
+  if(k!=="z"&&k!=="y") return;
   const t=e.target; if(t && (/^(input|textarea|select)$/i.test(t.tagName)||t.isContentEditable)) return; // let text fields use native undo
   e.preventDefault();
   if(k==="y"||(k==="z"&&e.shiftKey)) redo(); else undo();
