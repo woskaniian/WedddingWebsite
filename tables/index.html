@@ -126,6 +126,29 @@
   .modal .row .ok{background:var(--accent);color:#fff}
   .modal .row .cancel{background:#e6dccb;color:#3b2f25}
 
+  /* ---------- cost analysis ---------- */
+  .cost-input{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:10px 12px;background:#faf6ee;border:1px solid var(--line);border-radius:8px}
+  .cost-input input{width:110px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:14px;font-family:inherit;text-align:right}
+  .cost-input input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(168,116,58,.18)}
+  .cost-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:0 0 14px}
+  .cost-card{padding:10px 8px;border-radius:8px;text-align:center}
+  .cost-card .cv{font-size:18px;font-weight:700;margin:2px 0}
+  .cost-card .cl{font-size:10px;color:#7a6f5f;text-transform:uppercase;letter-spacing:.5px}
+  .cost-card.total{background:#f0ebe0}.cost-card.waste{background:#fce8e6}.cost-card.save{background:#e7f3e9}
+  .cost-card.total .cv{color:#3b2f25}.cost-card.waste .cv{color:var(--warn)}.cost-card.save .cv{color:var(--ok)}
+  .cost-tbl{width:100%;border-collapse:collapse;font-size:12px;margin:0 0 12px}
+  .cost-tbl th{text-align:left;padding:5px 4px;border-bottom:2px solid #d4c5a9;font-size:10px;color:#7a6f5f;text-transform:uppercase}
+  .cost-tbl th.r{text-align:right}
+  .cost-tbl td{padding:4px;border-bottom:1px solid #eee;font-size:12px}
+  .cost-tbl td.r{text-align:right;font-variant-numeric:tabular-nums}
+  .cost-tbl td.w{color:var(--warn);font-weight:600}
+  .cost-tbl tr.empty-row{opacity:.5;font-style:italic}
+  .cost-tbl tfoot td{border-top:2px solid #d4c5a9;font-weight:700;padding-top:6px}
+  .sug-item{padding:8px 10px;margin:4px 0;background:#f8f4ec;border-radius:6px;font-size:12px;line-height:1.4;border-left:3px solid var(--ok)}
+  .sug-item .sug-save{color:var(--ok);font-weight:700}
+  .cost-eff{display:flex;gap:14px;margin:8px 0 12px;font-size:12px;color:#5c4a3a;flex-wrap:wrap}
+  .cost-eff b{color:#3b2f25}
+
   @media print{header.bar{display:none}body{background:#fff}.venue{overflow:visible;height:auto}#canvas{border:0;background:#fff}.menu-btn,.shape-btn,.rot-handle,.guest .del,.fx-h{display:none!important}}
 
   header.bar button{transition:background .12s ease}
@@ -228,6 +251,7 @@
   <button id="addTableBtn">🍽 Սեղան</button>
   <div class="histbox" title="Հետարկել / Կրկնել"><button id="undoBtn" title="Հետարկել (Ctrl+Z)">↶</button><button id="redoBtn" title="Կրկնել (Ctrl+Shift+Z)">↷</button></div>
   <button id="statsBtn" class="ghost">📊 Վիճակ</button>
+  <button id="costBtn" class="ghost">💰 Ծախսեր</button>
   <span class="legend"><span class="lg bride"></span>👰 Հարս<span class="lg groom" style="margin-left:6px"></span>🤵 Փեսա</span>
   <div class="sizebox" title="Սրահի լայնք (px)"><b>W</b><button id="wMinus">−</button><span id="wLbl">0</span><button id="wPlus">+</button></div>
   <div class="sizebox" title="Սրահի երկարք (px)"><b>H</b><button id="hMinus">−</button><span id="hLbl">0</span><button id="hPlus">+</button></div>
@@ -252,6 +276,9 @@
 <script>
 const SEAT_KEY="weddingSeating_v6", POS_KEY="weddingPos_v6", ZOOM_KEY="weddingZoom_v6", SHAPE_KEY="weddingShape_v6";
 const CAP_KEY="weddingCap_v6", SIZE_KEY="weddingSize_v6", LABEL_KEY="weddingLabel_v6", FIX_KEY="weddingFix_v6", SIDE_KEY="weddingSide_v6";
+const PRICE_KEY="weddingPrice_v6";
+const TABLE_SIZES=[6,12,18];
+function bestFitSize(n){ if(n<=0) return 0; for(const s of TABLE_SIZES){ if(n<=s) return s; } return 18; }
 const DEFAULT_FIX={ stage:{x:560,y:14,w:540,h:78,label:"ԲԵՄ"}, presidium:{x:580,y:2160,w:480,h:70,label:"ՊՐԵԶԻԴԻՈՒՄ"} };
 const DEF_W=1660, DEF_H=2320;
 
@@ -288,6 +315,9 @@ let sides=loadSides();
 let zoom=loadZoom();
 let size=loadSize(); let CANVAS_W=size.w, CANVAS_H=size.h;
 let fixtures=loadFixtures();
+let pricePerSeat=loadPrice();
+function loadPrice(){ const p=parseFloat(localStorage.getItem(PRICE_KEY)); return (p>0)?p:0; }
+function savePrice(v){ pricePerSeat=v; localStorage.setItem(PRICE_KEY,String(v)); }
 
 function loadSides(){ let s={};try{const p=JSON.parse(localStorage.getItem(SIDE_KEY));if(p&&typeof p==="object")s=p;}catch(e){} return normSides(s); }
 function normSides(src){const o={};for(const n of allIds()){const v=src[n];o[n]=(v==="bride"||v==="groom")?v:"none";}return o;}
@@ -949,6 +979,125 @@ function showStats(){
   bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
 }
 document.getElementById("statsBtn").onclick=showStats;
+
+/* ---------- cost analysis ---------- */
+function showCostAnalysis(){
+  const ids=allIds();
+  const occupied=[], empties=[];
+  let totalGuests=0, totalPaidSeats=0;
+  for(const i of ids){
+    const g=tables[i].length, c=caps[i]||capOf(i);
+    totalGuests+=g; totalPaidSeats+=c;
+    if(g>0) occupied.push({id:i,guests:g,cap:c,label:labels[i]||("Սեղան "+i)});
+    else empties.push({id:i,cap:c,label:labels[i]||("Սեղան "+i)});
+  }
+  const price=pricePerSeat;
+  const totalCost=totalPaidSeats*price;
+  const wasteCost=Math.max(0,totalPaidSeats-totalGuests)*price;
+  const emptySeats=Math.max(0,totalPaidSeats-totalGuests);
+  const fmt=n=>n.toLocaleString();
+
+  // optimization suggestions
+  const merged=new Set(), suggestions=[];
+  const sorted=occupied.slice().sort((a,b)=>a.guests-b.guests);
+  for(let i=0;i<sorted.length;i++){
+    if(merged.has(sorted[i].id)) continue;
+    for(let j=i+1;j<sorted.length;j++){
+      if(merged.has(sorted[j].id)) continue;
+      const combined=sorted[i].guests+sorted[j].guests;
+      if(combined>18) continue;
+      const newCap=bestFitSize(combined);
+      const saving=sorted[i].cap+sorted[j].cap-newCap;
+      if(saving>0){
+        suggestions.push({type:"merge",a:sorted[i],b:sorted[j],combined,newCap,saved:saving});
+        merged.add(sorted[i].id); merged.add(sorted[j].id); break;
+      }
+    }
+  }
+  for(const t of sorted){
+    if(merged.has(t.id)) continue;
+    const optimal=bestFitSize(t.guests);
+    if(optimal<t.cap) suggestions.push({type:"downsize",table:t,from:t.cap,to:optimal,saved:t.cap-optimal});
+  }
+  for(const t of empties) suggestions.push({type:"empty",table:t,saved:t.cap});
+  const totalSavedSeats=suggestions.reduce((s,sg)=>s+sg.saved,0);
+  const totalSavedCost=totalSavedSeats*price;
+  const optSeats=totalGuests>0?Math.ceil(totalGuests/6)*6:0;
+
+  let body=`<div class="cost-input">
+    <label style="font-size:13px;font-weight:600;white-space:nowrap">Մեկ տեղի գինը</label>
+    <input id="costPrice" type="number" min="0" step="100" value="${price||""}" placeholder="0">
+    <span style="font-size:12px;color:#7a6f5f">/ 1 տեղ</span></div>`;
+
+  body+=`<div class="cost-cards">
+    <div class="cost-card total"><div class="cl">Ընդամենը</div><div class="cv">${price?fmt(totalCost):"—"}</div>
+      <div class="cl">${totalPaidSeats} տեղ</div></div>
+    <div class="cost-card waste"><div class="cl">Վատրած</div><div class="cv">${price?fmt(wasteCost):"—"}</div>
+      <div class="cl">${emptySeats} դատարկ տեղ</div></div>
+    <div class="cost-card save"><div class="cl">Խնայողություն</div><div class="cv">${price?fmt(totalSavedCost):"—"}</div>
+      <div class="cl">${totalSavedSeats} տեղ</div></div></div>`;
+
+  if(price && totalGuests>0){
+    const effective=Math.round(totalCost/totalGuests);
+    const fillPct=Math.round(totalGuests/totalPaidSeats*100);
+    body+=`<div class="cost-eff">Մեկ հյուրի արժեքը: <b>${fmt(effective)}</b> &nbsp;&middot;&nbsp; Լրացվածություն: <b>${fillPct}%</b> &nbsp;&middot;&nbsp; Նվազագույն: <b>${optSeats} տեղ</b></div>`;
+  }
+
+  const allTables=occupied.concat(empties).sort((a,b)=>a.id-b.id);
+  body+=`<div style="max-height:220px;overflow:auto;margin:0 0 12px"><table class="cost-tbl">
+    <thead><tr><th>Սեղան</th><th class="r">Հյուր</th><th class="r">Չափ</th><th class="r">Ազատ</th>`;
+  if(price) body+=`<th class="r">Արժեք</th><th class="r">Վատրած</th>`;
+  body+=`</tr></thead><tbody>`;
+  for(const t of allTables){
+    const isEmpty=t.guests===0;
+    const free=t.cap-t.guests;
+    const cost=t.cap*price;
+    const waste=free*price;
+    body+=`<tr${isEmpty?' class="empty-row"':''}>
+      <td>${escapeHTML(t.label)}</td><td class="r">${t.guests}</td><td class="r">${t.cap}</td>
+      <td class="r${free>0&&!isEmpty?' w':''}">${free}</td>`;
+    if(price) body+=`<td class="r">${fmt(cost)}</td><td class="r${waste>0?' w':''}">${fmt(waste)}</td>`;
+    body+=`</tr>`;
+  }
+  body+=`</tbody><tfoot><tr><td>Ընդամենը</td><td class="r">${totalGuests}</td><td class="r">${totalPaidSeats}</td><td class="r">${emptySeats}</td>`;
+  if(price) body+=`<td class="r">${fmt(totalCost)}</td><td class="r" style="color:var(--warn)">${fmt(wasteCost)}</td>`;
+  body+=`</tr></tfoot></table></div>`;
+
+  if(suggestions.length){
+    body+=`<p style="margin:8px 0 6px;font-weight:700;font-size:13px;color:var(--ok)">Առաջարկներ</p>`;
+    for(const sg of suggestions){
+      if(sg.type==="merge"){
+        const txt=`Միավորել ${escapeHTML(sg.a.label)} (${sg.a.guests}/${sg.a.cap}) + ${escapeHTML(sg.b.label)} (${sg.b.guests}/${sg.b.cap}) → 1 սեղան (${sg.combined}/${sg.newCap})`;
+        body+=`<div class="sug-item">${txt}${price?` — <span class="sug-save">խնայել ${fmt(sg.saved*price)}</span>`:` — <span class="sug-save">${sg.saved} տեղ</span>`}</div>`;
+      } else if(sg.type==="downsize"){
+        const txt=`${escapeHTML(sg.table.label)} (${sg.table.guests}/${sg.from}) → փոխել ${sg.to} տեղանոց`;
+        body+=`<div class="sug-item">${txt}${price?` — <span class="sug-save">խնայել ${fmt(sg.saved*price)}</span>`:` — <span class="sug-save">${sg.saved} տեղ</span>`}</div>`;
+      } else if(sg.type==="empty"){
+        const txt=`${escapeHTML(sg.table.label)} (${sg.table.cap} տեղ) — դատարկ է, կարելի է հանել`;
+        body+=`<div class="sug-item">${txt}${price?` — <span class="sug-save">խնայել ${fmt(sg.saved*price)}</span>`:``}</div>`;
+      }
+    }
+    if(price && totalSavedCost>0){
+      body+=`<p style="margin:8px 0 0;font-size:13px;font-weight:700;color:var(--ok)">Ընդամենը կարելի է խնայել: ${fmt(totalSavedCost)}</p>`;
+    }
+  } else if(totalGuests>0){
+    body+=`<p style="margin:8px 0 0;font-size:13px;color:var(--ok)">Սեղանները օպտիմալ դասավորված են</p>`;
+  }
+
+  const bg=document.createElement("div"); bg.className="modal-bg";
+  bg.innerHTML=`<div class="modal" style="width:min(620px,94vw)"><h3>💰 Վերլուծություն</h3>${body}
+    <div class="row"><button class="ok">Փակել</button></div></div>`;
+  document.body.appendChild(bg);
+  const close=()=>bg.remove();
+  bg.querySelector(".ok").onclick=close;
+  bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
+  const pi=bg.querySelector("#costPrice");
+  if(pi){ pi.focus(); pi.addEventListener("change",e=>{
+    const v=parseFloat(e.target.value)||0; savePrice(v); close(); showCostAnalysis();
+  }); }
+}
+document.getElementById("costBtn").onclick=showCostAnalysis;
+
 
 /* ---------- search ---------- */
 function applySearch(){
