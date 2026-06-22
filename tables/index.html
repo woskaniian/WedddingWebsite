@@ -360,124 +360,177 @@ function updateHistoryUI(){ const u=document.getElementById("undoBtn"), r=docume
   if(u) u.disabled=!undoStack.length; if(r) r.disabled=!redoStack.length; }
 
 /* ---------- shared sync (Cloudflare KV via /api/seating) ----------
-   Conflicts are resolved by a 3-way merge (common-ancestor based), NOT by
-   overwriting the whole document. syncBase = the last state both sides agreed
-   on. When someone else has written since, we merge their changes with ours:
-     · a table only THEY touched  → keep theirs (your old copy never clobbers it)
-     · a table only YOU touched    → keep yours
-     · both touched the same field → theirs wins (don't lose others' work);
-       for a table's guest list, names you ADDED are still appended, not lost. */
+   KV stores a CONFLICT-FREE REPLICATED DOCUMENT (CRDT), not a raw snapshot:
+     · each table field (pos/shape/cap/label/side) is a last-write-wins register
+       carrying its own logical timestamp;
+     · guests are an OR-Set keyed by a stable id, each with a timestamp and a
+       delete-clock, so concurrent add / move / remove all survive;
+     · fixtures and room size are LWW registers too.
+   Merging two documents is pure "max-timestamp-wins per field" — commutative,
+   idempotent, needing NO common ancestor. Any two devices (any version, even
+   after a fresh reload) converge to the same result with nothing lost. The UI
+   keeps working on plain strings; this layer translates snapshot ⇄ doc. */
 const SYNC_API="/api/seating";
 const SYNC_TOKEN="P@ssw0rd@123"; // matches login password; set KV_TOKEN env to the same value to lock the API
-let syncRev=0, syncDirty=false, syncBusy=false, syncOnline=false, applyingRemote=false, syncTimer=null, syncPoller=null;
-let syncBase=null, syncMerging=false;        // syncBase = JSON of the last agreed-upon (server) state
-function setSyncStat(txt,cls){ const el=document.getElementById("syncStat"); if(el){ el.textContent=txt; el.className="stat sync "+(cls||""); } }
-function syncHdr(extra){ return Object.assign({ "authorization":"Bearer "+SYNC_TOKEN }, extra||{}); }
+const DOC_KEY="weddingDoc_v7", DOC_V=7, MIGRATE_TS=1;
+const DEVICE=(()=>{ let d=localStorage.getItem("weddingDevice"); if(!d){ d=Math.random().toString(36).slice(2,10); localStorage.setItem("weddingDevice",d); } return d; })();
+const _devHash=[...DEVICE].reduce((a,c)=>(a*31+c.charCodeAt(0))%997,7);
+let _gidc=0;
+function stamp(){ return Date.now()*1000 + _devHash; }              // unique-ish, comparable, ~monotonic
+function gid(){ return DEVICE+(_gidc++).toString(36)+Date.now().toString(36); }
+const aliveOf=e=>!e.del || e.ts>e.del;
 const _eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 
-/* 3-way merge of one per-table map (keyed by table id). conflict→theirs wins. */
-function mergeMap(base,mine,theirs,onConflict){
-  base=base||{}; mine=mine||{}; theirs=theirs||{};
-  const out={}, keys=new Set([...Object.keys(mine),...Object.keys(theirs)]);
-  for(const k of keys){
-    const hasB=k in base, hasM=k in mine, hasT=k in theirs, b=base[k], m=mine[k], t=theirs[k];
-    if(hasM&&!hasT){ if(!(hasB&&_eq(b,m))) out[k]=m; continue; }   // they deleted: honor only if I didn't change it
-    if(hasT&&!hasM){ if(!(hasB&&_eq(b,t))) out[k]=t; continue; }   // I deleted: honor only if they didn't change it
-    const mChg=!hasB||!_eq(b,m), tChg=!hasB||!_eq(b,t);
-    if(mChg&&!tChg) out[k]=m;
-    else if(tChg&&!mChg) out[k]=t;
-    else if(!mChg&&!tChg) out[k]=t;
-    else out[k]=onConflict?onConflict(b,m,t):t;                   // both changed
+let syncRev=0, syncDirty=false, syncBusy=false, syncOnline=false, applyingRemote=false, syncTimer=null, syncPoller=null, syncMerging=false;
+function setSyncStat(txt,cls){ const el=document.getElementById("syncStat"); if(el){ el.textContent=txt; el.className="stat sync "+(cls||""); } }
+function syncHdr(extra){ return Object.assign({ "authorization":"Bearer "+SYNC_TOKEN }, extra||{}); }
+
+function emptyDoc(){ return {v:DOC_V, tables:{}, guests:{}, fixtures:{}, size:{}}; }
+
+/* ---- CRDT merge (pure, order-independent) ---- */
+function mergeGuest(a,b){ if(!a) return b; if(!b) return a;
+  const w=a.ts>=b.ts?a:b; return {t:w.t,n:w.n,o:w.o,ts:Math.max(a.ts,b.ts),del:Math.max(a.del||0,b.del||0)}; }
+function mergeMeta(a,b){ a=a||{}; b=b||{}; const o={};
+  for(const f of ["pos","shape","cap","label","side"]){ const ta=a[f+"T"]||0, tb=b[f+"T"]||0;
+    if(tb>ta){ o[f]=b[f]; o[f+"T"]=tb; } else if(f in a){ o[f]=a[f]; o[f+"T"]=ta; } }
+  o.delT=Math.max(a.delT||0,b.delT||0); return o; }
+function mergeDoc(a,b){ a=a||emptyDoc(); b=b||emptyDoc(); const o=emptyDoc();
+  for(const g of [...new Set([...Object.keys(a.guests),...Object.keys(b.guests)])].sort()) o.guests[g]=mergeGuest(a.guests[g],b.guests[g]);
+  for(const id of [...new Set([...Object.keys(a.tables),...Object.keys(b.tables)])].sort()) o.tables[id]=mergeMeta(a.tables[id],b.tables[id]);
+  for(const k of [...new Set([...Object.keys(a.fixtures),...Object.keys(b.fixtures)])].sort()){ const fa=a.fixtures[k],fb=b.fixtures[k]; o.fixtures[k]=(!fa||(fb&&(fb.ts||0)>(fa.ts||0)))?fb:fa; }
+  const sa=a.size||{}, sb=b.size||{}; o.size=(sb.ts||0)>(sa.ts||0)?sb:sa; return o; }
+
+/* ---- bridge: in-memory snapshot ⇄ CRDT doc ---- */
+let doc=loadDoc();
+function loadDoc(){ try{ const d=JSON.parse(localStorage.getItem(DOC_KEY)); if(d&&d.v) return d; }catch(e){}
+  return docFromSnapshot(JSON.parse(fullSnapshot()), MIGRATE_TS); }   // first run: adopt current layout as baseline
+function saveDoc(){ try{ localStorage.setItem(DOC_KEY, JSON.stringify(doc)); }catch(e){} }
+// build a doc from a plain snapshot with DETERMINISTIC guest ids, so two devices
+// migrating the same legacy data produce identical docs (no duplicated guests on merge)
+function docFromSnapshot(snap, ts){
+  const d=emptyDoc();
+  for(const id of Object.keys(snap.tables).map(Number)){
+    d.tables[id]={ pos:snap.positions[id], posT:ts, shape:snap.shapes[id], shapeT:ts, cap:snap.caps[id], capT:ts,
+                   label:snap.labels[id], labelT:ts, side:snap.sides[id], sideT:ts, delT:0 };
+    snap.tables[id].forEach((name,i)=>{ d.guests["m"+id+"_"+i]={t:id,n:name,o:i,ts,del:0}; });
   }
-  return out;
-}
-// both changed the same guest list → take theirs, then re-append names I newly added
-function mergeGuests(b,m,t){ b=b||[]; const out=(t||[]).slice();
-  for(const g of (m||[])) if(!b.includes(g) && !out.includes(g)) out.push(g);
-  return out;
-}
-function mergeScalar(b,m,t,pick){ const mChg=m!==b,tChg=t!==b;
-  if(mChg&&!tChg) return m; if(tChg&&!mChg) return t; if(!mChg&&!tChg) return t; return pick?pick(m,t):t; }
-function merge3(base,mine,theirs){
-  base=base||{}; theirs=theirs||{};
-  return {
-    tables:    mergeMap(base.tables,    mine.tables,    theirs.tables, mergeGuests),
-    positions: mergeMap(base.positions, mine.positions, theirs.positions),
-    shapes:    mergeMap(base.shapes,    mine.shapes,    theirs.shapes),
-    caps:      mergeMap(base.caps,      mine.caps,      theirs.caps),
-    labels:    mergeMap(base.labels,    mine.labels,    theirs.labels),
-    sides:     mergeMap(base.sides,     mine.sides,     theirs.sides),
-    fixtures:  mergeMap(base.fixtures,  mine.fixtures,  theirs.fixtures),
-    w: mergeScalar(base.w, mine.w, theirs.w, Math.max),          // keep the room big enough for both
-    h: mergeScalar(base.h, mine.h, theirs.h, Math.max),
-  };
+  for(const k in snap.fixtures){ const f=snap.fixtures[k]; d.fixtures[k]={x:f.x,y:f.y,w:f.w,h:f.h,label:f.label,ts}; }
+  d.size={w:snap.w,h:snap.h,ts};
+  return d;
 }
 
-// called from every save*(): debounced push of the whole layout
-function scheduleSync(){
-  if(applyingRemote) return;                 // don't echo back a change we just pulled
-  syncDirty=true; setSyncStat("✎ չպահված…","dirty");
-  clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200);
+// fold the current in-memory layout (snap) into d, stamping ts only where a value actually changed
+function reconcileLocal(d, snap, now){
+  now=now||stamp(); d=d||emptyDoc();
+  const ids=Object.keys(snap.tables).map(Number);
+  for(const id of ids){
+    const m=d.tables[id]||(d.tables[id]={delT:0});
+    const set=(f,v)=>{ if(!_eq(m[f],v)){ m[f]=v; m[f+"T"]=now; } };
+    set("pos",snap.positions[id]); set("shape",snap.shapes[id]); set("cap",snap.caps[id]);
+    set("label",snap.labels[id]); set("side",snap.sides[id]); if(m.delT==null) m.delT=0;
+  }
+  for(const id in d.tables){ if(!snap.tables[id] && !(d.tables[id].delT>0)) d.tables[id].delT=now; }   // gone locally ⇒ tombstone
+  for(const id of ids){
+    const alive=Object.entries(d.guests).filter(([g,e])=>e.t==id && aliveOf(e)).sort((a,b)=>a[1].o-b[1].o);
+    const pool={}; for(const [g,e] of alive){ (pool[e.n]=pool[e.n]||[]).push(g); }
+    const used=new Set();
+    snap.tables[id].forEach((name,i)=>{
+      const q=pool[name];
+      if(q&&q.length){ const g=q.shift(); used.add(g); const e=d.guests[g]; if(e.o!==i){ e.o=i; e.ts=now; } }
+      else { const g=gid(); d.guests[g]={t:id,n:name,o:i,ts:now,del:0}; used.add(g); }
+    });
+    for(const [g,e] of alive){ if(!used.has(g)) e.del=now; }      // removed locally ⇒ tombstone
+  }
+  for(const k in snap.fixtures){ const cur=snap.fixtures[k], pr=d.fixtures[k]||{};
+    const v={x:cur.x,y:cur.y,w:cur.w,h:cur.h,label:cur.label};
+    if(!_eq({x:pr.x,y:pr.y,w:pr.w,h:pr.h,label:pr.label}, v)) d.fixtures[k]={...v, ts:now}; }
+  if(!d.size || d.size.w!==snap.w || d.size.h!==snap.h){ d.size={w:snap.w,h:snap.h,ts:now}; }
+  return d;
 }
+// project the CRDT doc into a plain snapshot the UI understands
+function snapshotFromDoc(d){
+  const snap={tables:{},positions:{},shapes:{},caps:{},labels:{},sides:{},fixtures:{},w:DEF_W,h:DEF_H};
+  const ids=new Set();
+  for(const id in d.tables) if(!(d.tables[id].delT>0)) ids.add(+id);
+  for(const g in d.guests){ const e=d.guests[g]; if(aliveOf(e)) ids.add(+e.t); }       // a table with live guests stays, even if someone deleted it
+  for(const id of ids) snap.tables[id]=[];
+  Object.values(d.guests).filter(aliveOf).filter(e=>ids.has(+e.t)).sort((a,b)=>(a.o-b.o)).forEach(e=>{ (snap.tables[e.t]=snap.tables[e.t]||[]).push(e.n); });
+  for(const id of ids){ const m=d.tables[id]||{};
+    snap.positions[id]=m.pos||DEFAULT_POS[id]||{x:20,y:20,rot:0};
+    snap.shapes[id]=m.shape||DEFAULT_SHAPE[id]||"round";
+    snap.caps[id]=m.cap||capOf(id);
+    snap.labels[id]=m.label||("Սեղան "+id);
+    snap.sides[id]=m.side||"none"; }
+  for(const k in d.fixtures){ const f=d.fixtures[k]; if(f) snap.fixtures[k]={x:f.x,y:f.y,w:f.w,h:f.h,label:f.label}; }
+  if(d.size&&d.size.w){ snap.w=d.size.w; snap.h=d.size.h; }
+  return snap;
+}
+// accept any remote payload — upgrade a legacy {tables:[...]} snapshot to a doc on the fly
+function asDoc(data){
+  if(!data) return emptyDoc();
+  const t=data.tables&&Object.values(data.tables)[0];
+  if(data.guests && data.tables && !Array.isArray(t)) return data;                     // already a CRDT doc
+  return docFromSnapshot({                                                             // legacy {tables:[...]} snapshot → deterministic doc
+    tables:data.tables||{}, positions:data.positions||{}, shapes:data.shapes||{}, caps:data.caps||{},
+    labels:data.labels||{}, sides:data.sides||{}, fixtures:data.fixtures||{}, w:data.w||DEF_W, h:data.h||DEF_H }, MIGRATE_TS);
+}
+function applyDocToUI(){ applyingRemote=true; try{ applySnapshot(JSON.stringify(snapshotFromDoc(doc))); } finally{ applyingRemote=false; } }
+
+/* ---- network ---- */
+function scheduleSync(){ if(applyingRemote) return; syncDirty=true; setSyncStat("✎ չպահված…","dirty");
+  clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200); }
+
 async function pushRemote(){
   if(!syncDirty || syncBusy || syncMerging) return;
   syncBusy=true; setSyncStat("☁ պահվում…","saving");
-  const snap=fullSnapshot();
+  doc=reconcileLocal(doc, JSON.parse(fullSnapshot()), stamp()); saveDoc();
   try{
-    const r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}),
-      body:JSON.stringify({ baseRev:syncRev, data:JSON.parse(snap) }) });
-    if(r.status===409){ const j=await r.json(); syncBusy=false; await autoMerge(j); return; }   // someone else wrote → merge, don't overwrite
+    const r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}), body:JSON.stringify({ baseRev:syncRev, data:doc }) });
+    if(r.status===409){ const j=await r.json(); syncBusy=false; await mergeAndPush(j); return; }   // someone else wrote → merge, never overwrite
     if(!r.ok) throw 0;
-    const j=await r.json(); syncRev=j.rev; syncBase=snap; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok");
+    const j=await r.json(); syncRev=j.rev; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok");
   }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
   finally{ syncBusy=false; if(syncDirty && syncOnline && !syncMerging){ clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200); } }
+}
+async function mergeAndPush(theirs){
+  if(syncMerging) return; syncMerging=true;
+  try{
+    for(let attempt=0; attempt<6; attempt++){
+      doc=reconcileLocal(doc, JSON.parse(fullSnapshot()), stamp());    // fold any just-made local edits
+      doc=mergeDoc(doc, asDoc(theirs.data)); saveDoc();
+      applyDocToUI();                                                  // reflect merged-in remote changes
+      setSyncStat("⚲ ձուլվում…","saving"); syncBusy=true;
+      let r;
+      try{ r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}), body:JSON.stringify({ baseRev:theirs.rev||0, data:doc }) }); }
+      catch(e){ syncBusy=false; syncOnline=false; setSyncStat("⚠ օֆլայն","off"); return; }
+      syncBusy=false;
+      if(r.status===409){ theirs=await r.json(); continue; }           // raced again → re-merge on top of the newest
+      if(!r.ok){ syncOnline=false; setSyncStat("⚠ սխալ","off"); return; }
+      const k=await r.json(); syncRev=k.rev; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok"); return;
+    }
+    setSyncStat("⚠ չհաջողվեց ձուլել","off");
+  } finally { syncMerging=false; }
 }
 async function pullRemote(){
   if(syncBusy || syncMerging) return;
   try{
     const r=await fetch(SYNC_API,{ headers:syncHdr() });
-    if(r.status===501){ setSyncStat("☁ անջատ","off"); return; }   // KV not bound yet
+    if(r.status===501){ setSyncStat("☁ անջատ","off"); return; }       // KV not bound yet
     if(!r.ok) throw 0;
     const j=await r.json(); syncOnline=true;
-    if(j.data==null && (j.rev||0)===0){ if(!syncDirty){ syncRev=0; syncDirty=true; pushRemote(); } return; } // seed empty store
-    if(j.rev>syncRev){ if(syncDirty) await autoMerge(j); else applyRemote(j); }
-    else if(!syncDirty){ syncBase=fullSnapshot(); setSyncStat("☁ պահված","ok"); }   // in sync → record the agreed base
+    if(j.data==null && (j.rev||0)===0){ if(!syncDirty){ syncRev=0; syncDirty=true; pushRemote(); } return; }   // seed empty store
+    if(j.rev>syncRev){
+      const theirs=asDoc(j.data), merged=mergeDoc(doc, theirs);
+      const changed=!_eq(merged,doc), behind=!_eq(merged,theirs);     // behind ⇒ we still hold newer fields to push back
+      doc=merged; saveDoc(); syncRev=j.rev;
+      if(changed) applyDocToUI();
+      if(changed) setSyncStat("⬇ թարմացված","ok"); else if(!syncDirty) setSyncStat("☁ պահված","ok");
+      if(behind && !syncDirty){ syncDirty=true; clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,300); }
+    } else if(!syncDirty) setSyncStat("☁ պահված","ok");
   }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
 }
-function applyRemote(j){
-  if(j.data==null){ syncRev=j.rev||0; return; }
-  applyingRemote=true; try{ applySnapshot(JSON.stringify(j.data)); } finally{ applyingRemote=false; }
-  syncRev=j.rev; syncBase=JSON.stringify(j.data); syncDirty=false; setSyncStat("⬇ թարմացված","ok");
-}
-// merge my local changes with the newer server state, then save the merged result
-async function autoMerge(theirs){
-  if(syncMerging) return; syncMerging=true;
-  try{
-    for(let attempt=0; attempt<5; attempt++){
-      const base=syncBase?JSON.parse(syncBase):JSON.parse(fullSnapshot());
-      const mine=JSON.parse(fullSnapshot());
-      const merged=merge3(base, mine, theirs.data||{});
-      applyingRemote=true; try{ applySnapshot(JSON.stringify(merged)); } finally{ applyingRemote=false; }
-      setSyncStat("⚲ ձուլվում…","saving"); syncBusy=true;
-      let r;
-      try{ r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}),
-            body:JSON.stringify({ baseRev:theirs.rev||0, data:merged }) }); }
-      catch(e){ syncBusy=false; syncOnline=false; setSyncStat("⚠ օֆլայն","off"); return; }
-      syncBusy=false;
-      if(r.status===409){ theirs=await r.json(); continue; }   // raced again → re-merge on top of the newest
-      if(!r.ok){ syncOnline=false; setSyncStat("⚠ սխալ","off"); return; }
-      const k=await r.json(); syncRev=k.rev; syncBase=JSON.stringify(merged); syncDirty=false; syncOnline=true;
-      setSyncStat("⚲ ձուլված","ok"); toast("⚲ Փոփոխությունները ձուլվեցին");
-      return;
-    }
-    setSyncStat("⚠ չհաջողվեց ձուլել","off");
-  } finally { syncMerging=false; }
-}
-async function syncInit(){
-  setSyncStat("☁ միանում…","");
-  await pullRemote();
-  if(!syncPoller) syncPoller=setInterval(pullRemote,6000);   // pick up the other device's changes
-}
+async function syncInit(){ setSyncStat("☁ միանում…",""); saveDoc(); await pullRemote();
+  if(!syncPoller) syncPoller=setInterval(pullRemote,6000); }          // pick up other devices' changes
 
 /* ---------- manual save · backup · restore ---------- */
 function saveNow(){ clearTimeout(syncTimer); syncDirty=true; pushRemote(); toast("💾 Պահված"); }
