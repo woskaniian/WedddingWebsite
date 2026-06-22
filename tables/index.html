@@ -1231,15 +1231,23 @@ function printMap(){
     const id=+el.dataset.table, x=el.offsetLeft,y=el.offsetTop,w=el.offsetWidth,h=el.offsetHeight;
     const cx=x+w/2, cy=y+h/2, rot=(positions[id]&&positions[id].rot)||0;
     const side=sides[id], stroke=side==='bride'?'#d6336c':side==='groom'?'#1c7ed6':'#333';
-    let shapeSvg, bw, bh, numFont;
-    if((shapes[id]||'round')==='rect'){ const sw=w*0.9, sh=50; bw=sw; bh=sh; numFont=Math.min(40,sh*0.74);
+    let shapeSvg, bw, bh, rectShape;
+    if((shapes[id]||'round')==='rect'){ rectShape=true; const sw=w*0.9, sh=50; bw=sw; bh=sh;
       shapeSvg=`<rect x="${cx-sw/2}" y="${cy-sh/2}" width="${sw}" height="${sh}" rx="10" fill="#fff" stroke="${stroke}" stroke-width="3"/>`;
-    } else { const r=w/2; bw=w; bh=w; numFont=Math.min(64,r*1.05);
+    } else { rectShape=false; const r=w/2; bw=w; bh=w;
       shapeSvg=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="${stroke}" stroke-width="3"/>`; }
-    const label=labels[id]||('Սեղան '+id), custom=label!==('Սեղան '+id);
     parts.push(`<g transform="rotate(${rot} ${cx} ${cy})">${shapeSvg}</g>`);
-    parts.push(`<text x="${cx}" y="${cy}" font-size="${numFont}" font-weight="800" fill="#111" text-anchor="middle" dominant-baseline="central">${id}</text>`);
-    if(custom) parts.push(`<text x="${cx}" y="${cy+numFont*0.72}" font-size="${Math.min(20,numFont*0.5)}" fill="#555" text-anchor="middle" dominant-baseline="central">${xml(label)}</text>`);
+    // stacked text (upright): big table number · count/capacity (red if over) · custom name
+    const cnt=(tables[id]||[]).length, cap=caps[id]||capOf(id), over=cnt>cap;
+    const label=labels[id]||('Սեղան '+id), custom=label!==('Սեղան '+id);
+    const numFont=rectShape?26:Math.min(58,(w/2)*0.92), cntFont=rectShape?15:Math.min(22,numFont*0.42);
+    const lines=[{t:String(id),f:numFont,wt:800,c:'#111'},{t:cnt+'/'+cap,f:cntFont,wt:700,c:over?'#c0392b':'#2f7d32'}];
+    if(custom) lines.push({t:label,f:Math.min(16,cntFont),wt:400,c:'#555'});
+    const gap=2, totalH=lines.reduce((a,l)=>a+l.f,0)+gap*(lines.length-1);
+    let yy=cy-totalH/2;
+    for(const l of lines){ yy+=l.f/2;
+      parts.push(`<text x="${cx}" y="${yy.toFixed(1)}" font-size="${l.f}" font-weight="${l.wt}" fill="${l.c}" text-anchor="middle" dominant-baseline="central">${xml(l.t)}</text>`);
+      yy+=l.f/2+gap; }
     expand(cx,cy,bw,bh,rot);
   });
   if(!isFinite(minX)){ alert("Տպելու սեղան չկա։"); return; }
