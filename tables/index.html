@@ -1256,11 +1256,19 @@ function printMap(){
     +`.ttl{text-align:center;font-weight:700;font-size:13px;margin:0 0 2mm;color:#222}svg{display:block;margin:0 auto}</style></head>`
     +`<body><div class="ttl">${xml(title)}</div>${svg}</body></html>`;
 
-  const win=window.open("","_blank");
-  if(!win){ alert("Թույլատրիր ելնող պատուհանները (popup)՝ տպելու համար։"); return; }
-  win.document.open(); win.document.write(html); win.document.close();
-  const go=()=>{ try{ win.focus(); win.print(); }catch(e){} };
-  if(win.document.readyState==="complete") setTimeout(go,300); else win.onload=()=>setTimeout(go,200);
+  // Print from a hidden iframe: no new tab, and we print only AFTER its load event
+  // fires, so the SVG is fully rendered (avoids the blank-page race).
+  const old=document.getElementById("printFrame"); if(old) old.remove();
+  const frame=document.createElement("iframe"); frame.id="printFrame"; frame.setAttribute("aria-hidden","true");
+  frame.style.cssText="position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;";
+  frame.onload=()=>{ const w=frame.contentWindow;
+    const cleanup=()=>{ try{w.removeEventListener("afterprint",cleanup);}catch(e){} frame.remove(); };
+    try{ w.addEventListener("afterprint",cleanup); }catch(e){}
+    setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ frame.remove(); } }, 80);
+    setTimeout(()=>{ if(document.getElementById("printFrame")) frame.remove(); }, 60000); // safety cleanup
+  };
+  document.body.appendChild(frame);
+  frame.srcdoc=html;
 }
 document.getElementById("printBtn").onclick=printMap;
 document.getElementById("exportBtn").onclick=()=>{
