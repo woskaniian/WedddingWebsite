@@ -359,12 +359,60 @@ function redo(){ if(!redoStack.length) return; undoStack.push(fullSnapshot()); a
 function updateHistoryUI(){ const u=document.getElementById("undoBtn"), r=document.getElementById("redoBtn");
   if(u) u.disabled=!undoStack.length; if(r) r.disabled=!redoStack.length; }
 
-/* ---------- shared sync (Cloudflare KV via /api/seating) ---------- */
+/* ---------- shared sync (Cloudflare KV via /api/seating) ----------
+   Conflicts are resolved by a 3-way merge (common-ancestor based), NOT by
+   overwriting the whole document. syncBase = the last state both sides agreed
+   on. When someone else has written since, we merge their changes with ours:
+     · a table only THEY touched  → keep theirs (your old copy never clobbers it)
+     · a table only YOU touched    → keep yours
+     · both touched the same field → theirs wins (don't lose others' work);
+       for a table's guest list, names you ADDED are still appended, not lost. */
 const SYNC_API="/api/seating";
 const SYNC_TOKEN="P@ssw0rd@123"; // matches login password; set KV_TOKEN env to the same value to lock the API
-let syncRev=0, syncDirty=false, syncBusy=false, syncOnline=false, applyingRemote=false, syncTimer=null, syncPoller=null, conflictShown=false;
+let syncRev=0, syncDirty=false, syncBusy=false, syncOnline=false, applyingRemote=false, syncTimer=null, syncPoller=null;
+let syncBase=null, syncMerging=false;        // syncBase = JSON of the last agreed-upon (server) state
 function setSyncStat(txt,cls){ const el=document.getElementById("syncStat"); if(el){ el.textContent=txt; el.className="stat sync "+(cls||""); } }
 function syncHdr(extra){ return Object.assign({ "authorization":"Bearer "+SYNC_TOKEN }, extra||{}); }
+const _eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+
+/* 3-way merge of one per-table map (keyed by table id). conflict→theirs wins. */
+function mergeMap(base,mine,theirs,onConflict){
+  base=base||{}; mine=mine||{}; theirs=theirs||{};
+  const out={}, keys=new Set([...Object.keys(mine),...Object.keys(theirs)]);
+  for(const k of keys){
+    const hasB=k in base, hasM=k in mine, hasT=k in theirs, b=base[k], m=mine[k], t=theirs[k];
+    if(hasM&&!hasT){ if(!(hasB&&_eq(b,m))) out[k]=m; continue; }   // they deleted: honor only if I didn't change it
+    if(hasT&&!hasM){ if(!(hasB&&_eq(b,t))) out[k]=t; continue; }   // I deleted: honor only if they didn't change it
+    const mChg=!hasB||!_eq(b,m), tChg=!hasB||!_eq(b,t);
+    if(mChg&&!tChg) out[k]=m;
+    else if(tChg&&!mChg) out[k]=t;
+    else if(!mChg&&!tChg) out[k]=t;
+    else out[k]=onConflict?onConflict(b,m,t):t;                   // both changed
+  }
+  return out;
+}
+// both changed the same guest list → take theirs, then re-append names I newly added
+function mergeGuests(b,m,t){ b=b||[]; const out=(t||[]).slice();
+  for(const g of (m||[])) if(!b.includes(g) && !out.includes(g)) out.push(g);
+  return out;
+}
+function mergeScalar(b,m,t,pick){ const mChg=m!==b,tChg=t!==b;
+  if(mChg&&!tChg) return m; if(tChg&&!mChg) return t; if(!mChg&&!tChg) return t; return pick?pick(m,t):t; }
+function merge3(base,mine,theirs){
+  base=base||{}; theirs=theirs||{};
+  return {
+    tables:    mergeMap(base.tables,    mine.tables,    theirs.tables, mergeGuests),
+    positions: mergeMap(base.positions, mine.positions, theirs.positions),
+    shapes:    mergeMap(base.shapes,    mine.shapes,    theirs.shapes),
+    caps:      mergeMap(base.caps,      mine.caps,      theirs.caps),
+    labels:    mergeMap(base.labels,    mine.labels,    theirs.labels),
+    sides:     mergeMap(base.sides,     mine.sides,     theirs.sides),
+    fixtures:  mergeMap(base.fixtures,  mine.fixtures,  theirs.fixtures),
+    w: mergeScalar(base.w, mine.w, theirs.w, Math.max),          // keep the room big enough for both
+    h: mergeScalar(base.h, mine.h, theirs.h, Math.max),
+  };
+}
+
 // called from every save*(): debounced push of the whole layout
 function scheduleSync(){
   if(applyingRemote) return;                 // don't echo back a change we just pulled
@@ -372,54 +420,58 @@ function scheduleSync(){
   clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200);
 }
 async function pushRemote(){
-  if(!syncDirty || syncBusy) return;
+  if(!syncDirty || syncBusy || syncMerging) return;
   syncBusy=true; setSyncStat("☁ պահվում…","saving");
+  const snap=fullSnapshot();
   try{
     const r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}),
-      body:JSON.stringify({ baseRev:syncRev, data:JSON.parse(fullSnapshot()) }) });
-    if(r.status===409){ syncBusy=false; onConflict(await r.json()); return; }
+      body:JSON.stringify({ baseRev:syncRev, data:JSON.parse(snap) }) });
+    if(r.status===409){ const j=await r.json(); syncBusy=false; await autoMerge(j); return; }   // someone else wrote → merge, don't overwrite
     if(!r.ok) throw 0;
-    const j=await r.json(); syncRev=j.rev; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok");
+    const j=await r.json(); syncRev=j.rev; syncBase=snap; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok");
   }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
-  finally{ syncBusy=false; if(syncDirty && syncOnline){ clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200); } }
+  finally{ syncBusy=false; if(syncDirty && syncOnline && !syncMerging){ clearTimeout(syncTimer); syncTimer=setTimeout(pushRemote,1200); } }
 }
 async function pullRemote(){
-  if(syncBusy) return;
+  if(syncBusy || syncMerging) return;
   try{
     const r=await fetch(SYNC_API,{ headers:syncHdr() });
     if(r.status===501){ setSyncStat("☁ անջատ","off"); return; }   // KV not bound yet
     if(!r.ok) throw 0;
     const j=await r.json(); syncOnline=true;
     if(j.data==null && (j.rev||0)===0){ if(!syncDirty){ syncRev=0; syncDirty=true; pushRemote(); } return; } // seed empty store
-    if(j.rev>syncRev){ if(syncDirty) onConflict(j); else applyRemote(j); }
-    else if(!syncDirty) setSyncStat("☁ պահված","ok");
+    if(j.rev>syncRev){ if(syncDirty) await autoMerge(j); else applyRemote(j); }
+    else if(!syncDirty){ syncBase=fullSnapshot(); setSyncStat("☁ պահված","ok"); }   // in sync → record the agreed base
   }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
 }
 function applyRemote(j){
   if(j.data==null){ syncRev=j.rev||0; return; }
   applyingRemote=true; try{ applySnapshot(JSON.stringify(j.data)); } finally{ applyingRemote=false; }
-  syncRev=j.rev; syncDirty=false; setSyncStat("⬇ թարմացված","ok");
+  syncRev=j.rev; syncBase=JSON.stringify(j.data); syncDirty=false; setSyncStat("⬇ թարմացված","ok");
 }
-function onConflict(j){
-  if(conflictShown) return; conflictShown=true;
-  const bg=document.createElement("div"); bg.className="modal-bg";
-  bg.innerHTML=`<div class="modal"><h3>⚠️ Փոփոխություն մյուս սարքից</h3>
-    <p style="font-size:13px;color:#5c4a3a;margin:0 0 4px">Մյուս սարքում սեղանները թարմացվել են, մինչ դու փոփոխում էիր։ Ո՞ր տարբերակը պահել։</p>
-    <div class="row"><button class="cancel" data-a="mine">Պահել իմը</button><button class="ok" data-a="theirs">Բերել նրանցը</button></div></div>`;
-  document.body.appendChild(bg);
-  const close=()=>{ bg.remove(); conflictShown=false; };
-  bg.querySelector('[data-a="theirs"]').onclick=()=>{ close(); applyRemote(j); };
-  bg.querySelector('[data-a="mine"]').onclick=()=>{ close(); forcePush(j.rev||0); };
-  bg.addEventListener("click",e=>{ if(e.target===bg) close(); });
-}
-async function forcePush(baseRev){
-  syncBusy=true; setSyncStat("☁ պահվում…","saving");
+// merge my local changes with the newer server state, then save the merged result
+async function autoMerge(theirs){
+  if(syncMerging) return; syncMerging=true;
   try{
-    const r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}),
-      body:JSON.stringify({ baseRev, force:true, data:JSON.parse(fullSnapshot()) }) });
-    if(!r.ok) throw 0; const j=await r.json(); syncRev=j.rev; syncDirty=false; syncOnline=true; setSyncStat("☁ պահված","ok");
-  }catch(e){ syncOnline=false; setSyncStat("⚠ օֆլայն","off"); }
-  finally{ syncBusy=false; }
+    for(let attempt=0; attempt<5; attempt++){
+      const base=syncBase?JSON.parse(syncBase):JSON.parse(fullSnapshot());
+      const mine=JSON.parse(fullSnapshot());
+      const merged=merge3(base, mine, theirs.data||{});
+      applyingRemote=true; try{ applySnapshot(JSON.stringify(merged)); } finally{ applyingRemote=false; }
+      setSyncStat("⚲ ձուլվում…","saving"); syncBusy=true;
+      let r;
+      try{ r=await fetch(SYNC_API,{ method:"PUT", headers:syncHdr({"content-type":"application/json"}),
+            body:JSON.stringify({ baseRev:theirs.rev||0, data:merged }) }); }
+      catch(e){ syncBusy=false; syncOnline=false; setSyncStat("⚠ օֆլայն","off"); return; }
+      syncBusy=false;
+      if(r.status===409){ theirs=await r.json(); continue; }   // raced again → re-merge on top of the newest
+      if(!r.ok){ syncOnline=false; setSyncStat("⚠ սխալ","off"); return; }
+      const k=await r.json(); syncRev=k.rev; syncBase=JSON.stringify(merged); syncDirty=false; syncOnline=true;
+      setSyncStat("⚲ ձուլված","ok"); toast("⚲ Փոփոխությունները ձուլվեցին");
+      return;
+    }
+    setSyncStat("⚠ չհաջողվեց ձուլել","off");
+  } finally { syncMerging=false; }
 }
 async function syncInit(){
   setSyncStat("☁ միանում…","");
