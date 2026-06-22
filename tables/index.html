@@ -126,7 +126,20 @@
   .modal .row .ok{background:var(--accent);color:#fff}
   .modal .row .cancel{background:#e6dccb;color:#3b2f25}
 
-  @media print{header.bar{display:none}body{background:#fff}.venue{overflow:visible;height:auto}#canvas{border:0;background:#fff}.menu-btn,.shape-btn,.rot-handle,.guest .del,.fx-h{display:none!important}}
+  @media print{
+    header.bar{display:none}
+    body{background:#fff;margin:0}
+    .venue{overflow:visible!important;height:auto!important;padding:0!important}
+    #canvasWrap{margin:0!important}
+    #canvas{border:1px solid #999;background:#fff;box-shadow:none}
+    /* restaurant copy: show the LAYOUT (table outlines, sizes, positions, numbers, fixtures) — not the guest names */
+    .menu-btn,.shape-btn,.rot-handle,.fx-h,.guest,.count,.empty-note{display:none!important}
+    .badge{box-shadow:0 0 0 1.5px #333;font-size:16px;width:34px;height:34px}
+    .surf-title{font-size:14px}
+    .fixture{border:1px solid #999}
+  }
+  body.printmap{overflow:visible}
+  body.printmap .venue{overflow:visible!important;height:auto!important}
 
   header.bar button{transition:background .12s ease}
   header.bar button.primary{background:#d9b779;color:#3b2f25}
@@ -180,6 +193,7 @@
   .auth-card button:hover{background:#946333}
   .auth-err{margin:12px 0 0;color:var(--warn);font-size:13px;text-align:center}
 </style>
+<style id="pageStyle"></style>
 </head>
 <body class="locked">
 <!-- ---------- login gate ----------
@@ -1195,7 +1209,28 @@ document.getElementById("importBtn").onclick=()=>document.getElementById("import
 document.getElementById("importFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) importJSON(f); e.target.value=""; });
 document.getElementById("csvBtn").onclick=()=>document.getElementById("csvFile").click();
 document.getElementById("csvFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) importCSV(f); e.target.value=""; });
-document.getElementById("printBtn").onclick=()=>window.print();
+// Print the whole floor plan scaled to fit ONE page — outlines, sizes, positions,
+// fixtures and table numbers visible; guest names hidden (restaurant numbering copy).
+function printMap(){
+  const MM=3.7795, M=8;                                   // 96dpi px per mm, 8mm page margin
+  const port={w:(210-2*M)*MM, h:(297-2*M)*MM};            // A4 usable areas
+  const land={w:(297-2*M)*MM, h:(210-2*M)*MM};
+  const sp=Math.min(port.w/CANVAS_W, port.h/CANVAS_H);
+  const sl=Math.min(land.w/CANVAS_W, land.h/CANVAS_H);
+  const landscape=sl>sp, s=landscape?sl:sp;
+  document.getElementById("pageStyle").textContent=`@page{size:A4 ${landscape?"landscape":"portrait"};margin:${M}mm}`;
+  const saved={t:canvas.style.transform, w:wrap.style.width, h:wrap.style.height};
+  canvas.style.transform=`scale(${s})`;
+  wrap.style.width=(CANVAS_W*s)+"px"; wrap.style.height=(CANVAS_H*s)+"px";
+  document.body.classList.add("printmap");
+  const restore=()=>{ document.body.classList.remove("printmap");
+    canvas.style.transform=saved.t; wrap.style.width=saved.w; wrap.style.height=saved.h;
+    window.removeEventListener("afterprint",restore); };
+  window.addEventListener("afterprint",restore);
+  window.print();
+  setTimeout(()=>{ if(document.body.classList.contains("printmap")) restore(); },1500); // fallback if afterprint never fires
+}
+document.getElementById("printBtn").onclick=printMap;
 document.getElementById("exportBtn").onclick=()=>{
   let txt="";
   for(const i of allIds()){ if(!tables[i].length) continue;
