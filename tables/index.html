@@ -868,6 +868,25 @@ function renameTable(n){
   const nv=v.trim()||("Սեղան "+n); if(nv===labels[n]) return;
   pushUndo(); labels[n]=nv; saveLabels(); render();
 }
+function renumberTable(n){
+  const v=prompt(`Սեղանի համարը (ընթացիկ՝ ${n})`, n);
+  if(v==null) return;
+  const m=parseInt(v,10);
+  if(!Number.isInteger(m)||m<1){ alert("Մուտքագրիր դրական ամբողջ թիվ։"); return; }
+  if(m===n) return;
+  if(tables[m]!=null){ alert(`Սեղան #${m} արդեն գոյություն ունի։ Ընտրիր ազատ համար։`); return; }
+  pushUndo();
+  // re-key every per-table map from old id n → new id m
+  tables[m]=tables[n];       delete tables[n];
+  positions[m]=positions[n]; delete positions[n];
+  shapes[m]=shapes[n];       delete shapes[n];
+  caps[m]=caps[n];           delete caps[n];
+  sides[m]=sides[n];         delete sides[n];
+  // bump the label only if it was the default "Սեղան <old>"; keep custom names
+  labels[m]=(labels[n]===("Սեղան "+n))?("Սեղան "+m):labels[n]; delete labels[n];
+  if(selected.has(n)){ selected.delete(n); selected.add(m); }
+  saveAll(); render();
+}
 function setCap(n){
   const v=prompt("Տեղերի քանակ այս սեղանի համար", caps[n]||capOf(n));
   if(v==null) return;
@@ -905,6 +924,7 @@ function openMenu(n,btn){
   m.innerHTML=`
     <button data-a="add">➕ Ավելացնել հյուր</button>
     <button data-a="rename">✏️ Վերանվանել սեղանը</button>
+    <button data-a="renumber">#️⃣ Փոխել համարը (#${n})</button>
     <button data-a="cap">🔢 Տեղերի քանակ (${caps[n]||capOf(n)})</button>
     <hr>
     <button data-a="transfer">⤴️ Տեղափոխել բոլոր հյուրերին</button>
@@ -924,6 +944,7 @@ function openMenu(n,btn){
     const b=e.target.closest("button"); if(!b) return; const a=b.dataset.a; closeMenu();
     if(a==="add") openAddGuest(n);
     else if(a==="rename") renameTable(n);
+    else if(a==="renumber") renumberTable(n);
     else if(a==="cap") setCap(n);
     else if(a==="transfer") transferAll(n);
     else if(a==="swap") swapTables(n);
