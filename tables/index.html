@@ -238,6 +238,8 @@
   <button id="backupBtn" class="ghost" title="Ներբեռնել ամբողջ դասավորությունը (JSON պահուստ)">🗂 Պահուստ</button>
   <button id="importBtn" class="ghost" title="Վերականգնել պահուստից (JSON)">⬆ Ներմուծել</button>
   <input id="importFile" type="file" accept="application/json,.json" hidden>
+  <button id="csvBtn" class="ghost" title="Ներմուծել CSV (սյունակ՝ սեղան, տող՝ տեղ)">📥 CSV</button>
+  <input id="csvFile" type="file" accept=".csv,text/csv" hidden>
   <span class="hint">Քաշիր սեղանը՝ տեղափոխելու · ⟳ պտտել · քաշիր անունը՝ այլ սեղան տեղափոխելու · ⋮ սեղանի մենյու · կրկնակ սեղմում անվան վրա՝ վերանվանել · քաշիր դատարկ տարածքում՝ մի քանի սեղան ընտրելու · <b>Ctrl+Z</b>՝ հետարկել, <b>Ctrl+Shift+Z</b>՝ կրկնել</span>
 </header>
 
@@ -444,6 +446,92 @@ function importJSON(file){
     pushUndo();
     applySnapshot(JSON.stringify(data));   // saves locally, re-renders, and syncs to the shared store
     toast("⬆ Պահուստը ներմուծված է");
+  };
+  reader.readAsText(file);
+}
+
+/* ---------- CSV import (matrix layout) ----------
+   Tailored to "Wedding Planning - Vanush's Tables.csv":
+     row 0  = headers — first cell "No" (seat index), then one column PER TABLE:
+              "Սեղան 1" … "Սեղան N"  → app table N
+              any other header (e.g. "Պրեզիդիում") → a named table (matched by
+              label if it already exists, otherwise created on a free id)
+     rows 1+= each row is a seat; a column's guests are read top-to-bottom,
+              blank cells skipped. Only tables named in the CSV are replaced. */
+function parseCSV(text){
+  text=String(text).replace(/^﻿/,"");              // strip BOM
+  const rows=[]; let row=[], field="", inQ=false, i=0;
+  while(i<text.length){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'){ if(text[i+1]==='"'){ field+='"'; i+=2; continue; } inQ=false; i++; continue; }
+      field+=c; i++; continue;
+    }
+    if(c==='"'){ inQ=true; i++; continue; }
+    if(c===','){ row.push(field); field=""; i++; continue; }
+    if(c==='\r'){ i++; continue; }
+    if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=""; i++; continue; }
+    field+=c; i++;
+  }
+  if(field.length||row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+function importCSV(file){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let rows;
+    try{ rows=parseCSV(reader.result); }catch(err){ alert("CSV-ն չհաջողվեց ընթերցել։"); return; }
+    if(rows.length<2){ alert("CSV-ում սեղանների տվյալներ չկան։"); return; }
+    const header=rows[0].map(h=>String(h).trim());
+    // keep only seat rows: first column ("No") is a number. This drops blank
+    // lines and the trailing summary rows ("Տեղերի քանակ", "Ընդհանուր" totals).
+    const data=rows.slice(1).filter(r=>/^\d+$/.test(String(r[0]||"").trim()));
+    if(!data.length){ alert("CSV-ում տեղերի տողեր չգտնվեցին։"); return; }
+
+    // map each data column (skip col 0 = seat index "No") → {ci, id, label}
+    const cols=[], usedNumeric=new Set();
+    for(let ci=1;ci<header.length;ci++){
+      const h=header[ci]; if(!h) continue;
+      const m=h.match(/^Սեղան\s+(\d+)$/);
+      if(m){ const id=+m[1]; usedNumeric.add(id); cols.push({ci,id,label:"Սեղան "+id}); }
+      else cols.push({ci,id:null,label:h});                       // named table → resolve id below
+    }
+    if(!cols.length){ alert("CSV-ի վերնագրում սեղաններ չգտնվեցին (օր.՝ «Սեղան 1»)։"); return; }
+    let nextId=Math.max(0,...allIds(),...usedNumeric)+1;
+    for(const c of cols){
+      if(c.id!=null) continue;
+      const match=allIds().find(x=>(labels[x]||("Սեղան "+x))===c.label);   // reuse a table that already has this name
+      c.id = match!=null ? match : nextId++;
+    }
+
+    // read guests down each column
+    const plan={};
+    for(const c of cols) plan[c.id]={names:[],label:c.label};
+    for(const row of data) for(const c of cols){
+      const v=String(row[c.ci]||"").trim(); if(v) plan[c.id].names.push(v);
+    }
+
+    const ids=Object.keys(plan).map(Number);
+    const totalGuests=ids.reduce((s,id)=>s+plan[id].names.length,0);
+    if(!confirm(`Ներմուծե՞լ ${totalGuests} հյուր ${ids.length} սեղանի։\nCSV-ում նշված սեղանների ընթացիկ հյուրերը կփոխարինվեն (մյուսները՝ անփոփոխ)։\nՀետարկելի է Ctrl+Z-ով։`)) return;
+
+    pushUndo();
+    let newCount=0;
+    for(const id of ids){
+      const isNew=tables[id]==null, p=plan[id];
+      tables[id]=p.names.slice();
+      if(isNew){                                                  // seed metadata only for freshly created tables
+        labels[id]=p.label;
+        const d=DEFAULT_POS[id];
+        positions[id]=d?{x:d.x,y:d.y,rot:d.rot||0}:{x:600+newCount*36,y:2050+newCount*36,rot:0};
+        shapes[id]=DEFAULT_SHAPE[id]||"round";
+        caps[id]=Math.max(capOf(id),p.names.length);
+        sides[id]="none";
+        newCount++;
+      }
+    }
+    saveAll(); render();
+    toast(`📥 Ներմուծված է ${totalGuests} հյուր (${ids.length} սեղան)`);
   };
   reader.readAsText(file);
 }
@@ -979,6 +1067,8 @@ document.getElementById("saveBtn").onclick=saveNow;
 document.getElementById("backupBtn").onclick=exportJSON;
 document.getElementById("importBtn").onclick=()=>document.getElementById("importFile").click();
 document.getElementById("importFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) importJSON(f); e.target.value=""; });
+document.getElementById("csvBtn").onclick=()=>document.getElementById("csvFile").click();
+document.getElementById("csvFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) importCSV(f); e.target.value=""; });
 document.getElementById("printBtn").onclick=()=>window.print();
 document.getElementById("exportBtn").onclick=()=>{
   let txt="";
