@@ -279,7 +279,7 @@ function capOf(n){ return n===1 ? 18 : n===18 ? 6 : 12; }
 const DEFAULT_SHAPE={}; for(let i=1;i<=34;i++) DEFAULT_SHAPE[i]=(i===1)?"rect":"round";
 
 /* ---------- state ---------- */
-function allIds(){ return Object.keys(tables).map(Number).filter(n=>Number.isInteger(n)&&n>=1).sort((a,b)=>a-b); }
+function allIds(){ return Object.keys(tables).map(Number).filter(n=>Number.isInteger(n)&&n>=0).sort((a,b)=>a-b); }
 
 let tables=loadSeats();
 let positions=loadPos();
@@ -305,7 +305,7 @@ function applyFixtures(){ for(const k in fixtures){const el=document.getElementB
   el.querySelector(".fx-label").textContent=f.label;} }
 
 function loadSeats(){ try{const s=JSON.parse(localStorage.getItem(SEAT_KEY));if(s&&typeof s==="object")return normSeats(s);}catch(e){} return normSeats(DEFAULT);}
-function normSeats(src){const t={};for(const k in src){const n=+k;if(Number.isInteger(n)&&n>=1&&Array.isArray(src[k]))t[n]=src[k].slice();}return t;}
+function normSeats(src){const t={};for(const k in src){const n=+k;if(Number.isInteger(n)&&n>=0&&Array.isArray(src[k]))t[n]=src[k].slice();}return t;}
 function saveSeats(){localStorage.setItem(SEAT_KEY,JSON.stringify(tables));scheduleSync();}
 
 function loadPos(){ try{const p=JSON.parse(localStorage.getItem(POS_KEY));if(p&&typeof p==="object")return normPos(p);}catch(e){} return normPos(DEFAULT_POS);}
@@ -977,7 +977,7 @@ function renumberTable(n){
   const v=prompt(`Սեղանի համարը (ընթացիկ՝ ${n})`, n);
   if(v==null) return;
   const m=parseInt(v,10);
-  if(!Number.isInteger(m)||m<1){ alert("Մուտքագրիր դրական ամբողջ թիվ։"); return; }
+  if(!Number.isInteger(m)||m<0){ alert("Մուտքագրիր 0 կամ դրական ամբողջ թիվ։"); return; }
   if(m===n) return;
   if(tables[m]!=null){ alert(`Սեղան #${m} արդեն գոյություն ունի։ Ընտրիր ազատ համար։`); return; }
   pushUndo();
