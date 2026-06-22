@@ -138,8 +138,6 @@
     .surf-title{font-size:14px}
     .fixture{border:1px solid #999}
   }
-  body.printmap{overflow:visible}
-  body.printmap .venue{overflow:visible!important;height:auto!important}
 
   header.bar button{transition:background .12s ease}
   header.bar button.primary{background:#d9b779;color:#3b2f25}
@@ -193,7 +191,6 @@
   .auth-card button:hover{background:#946333}
   .auth-err{margin:12px 0 0;color:var(--warn);font-size:13px;text-align:center}
 </style>
-<style id="pageStyle"></style>
 </head>
 <body class="locked">
 <!-- ---------- login gate ----------
@@ -1209,26 +1206,61 @@ document.getElementById("importBtn").onclick=()=>document.getElementById("import
 document.getElementById("importFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) importJSON(f); e.target.value=""; });
 document.getElementById("csvBtn").onclick=()=>document.getElementById("csvFile").click();
 document.getElementById("csvFile").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) importCSV(f); e.target.value=""; });
-// Print the whole floor plan scaled to fit ONE page — outlines, sizes, positions,
-// fixtures and table numbers visible; guest names hidden (restaurant numbering copy).
+// Print the whole floor plan on ONE page as a crisp vector (SVG) — table outlines,
+// sizes, positions, rotations, fixtures and big table NUMBERS; no guest names.
+// Drawn as SVG so it scales to fit exactly and fills/numbers always print (browsers
+// skip CSS background colors by default, which is why badge numbers used to vanish).
 function printMap(){
-  const MM=3.7795, M=8;                                   // 96dpi px per mm, 8mm page margin
-  const port={w:(210-2*M)*MM, h:(297-2*M)*MM};            // A4 usable areas
-  const land={w:(297-2*M)*MM, h:(210-2*M)*MM};
-  const sp=Math.min(port.w/CANVAS_W, port.h/CANVAS_H);
-  const sl=Math.min(land.w/CANVAS_W, land.h/CANVAS_H);
-  const landscape=sl>sp, s=landscape?sl:sp;
-  document.getElementById("pageStyle").textContent=`@page{size:A4 ${landscape?"landscape":"portrait"};margin:${M}mm}`;
-  const saved={t:canvas.style.transform, w:wrap.style.width, h:wrap.style.height};
-  canvas.style.transform=`scale(${s})`;
-  wrap.style.width=(CANVAS_W*s)+"px"; wrap.style.height=(CANVAS_H*s)+"px";
-  document.body.classList.add("printmap");
-  const restore=()=>{ document.body.classList.remove("printmap");
-    canvas.style.transform=saved.t; wrap.style.width=saved.w; wrap.style.height=saved.h;
-    window.removeEventListener("afterprint",restore); };
-  window.addEventListener("afterprint",restore);
-  window.print();
-  setTimeout(()=>{ if(document.body.classList.contains("printmap")) restore(); },1500); // fallback if afterprint never fires
+  const parts=[];
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  const expand=(cx,cy,w,h,rot)=>{ const a=(rot||0)*Math.PI/180,co=Math.cos(a),si=Math.sin(a);
+    for(const [dx,dy] of [[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]]){
+      const px=cx+dx*co-dy*si, py=cy+dx*si+dy*co;
+      if(px<minX)minX=px; if(py<minY)minY=py; if(px>maxX)maxX=px; if(py>maxY)maxY=py; } };
+  const xml=s=>escapeHTML(String(s));
+
+  // fixtures (stage / presidium boxes)
+  for(const fid of Object.keys(fixtures)){ const el=document.getElementById(fid); if(!el) continue;
+    const x=el.offsetLeft,y=el.offsetTop,w=el.offsetWidth,h=el.offsetHeight, lbl=(fixtures[fid]&&fixtures[fid].label)||"";
+    parts.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#ececec" stroke="#555" stroke-width="2"/>`);
+    parts.push(`<text x="${x+w/2}" y="${y+h/2}" font-size="${Math.min(30,h*0.5)}" font-weight="700" letter-spacing="2" fill="#333" text-anchor="middle" dominant-baseline="central">${xml(lbl)}</text>`);
+    expand(x+w/2,y+h/2,w,h,0);
+  }
+  // tables
+  document.querySelectorAll('#tables .table').forEach(el=>{
+    const id=+el.dataset.table, x=el.offsetLeft,y=el.offsetTop,w=el.offsetWidth,h=el.offsetHeight;
+    const cx=x+w/2, cy=y+h/2, rot=(positions[id]&&positions[id].rot)||0;
+    const side=sides[id], stroke=side==='bride'?'#d6336c':side==='groom'?'#1c7ed6':'#333';
+    let shapeSvg, bw, bh, numFont;
+    if((shapes[id]||'round')==='rect'){ const sw=w*0.9, sh=50; bw=sw; bh=sh; numFont=Math.min(40,sh*0.74);
+      shapeSvg=`<rect x="${cx-sw/2}" y="${cy-sh/2}" width="${sw}" height="${sh}" rx="10" fill="#fff" stroke="${stroke}" stroke-width="3"/>`;
+    } else { const r=w/2; bw=w; bh=w; numFont=Math.min(64,r*1.05);
+      shapeSvg=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff" stroke="${stroke}" stroke-width="3"/>`; }
+    const label=labels[id]||('Սեղան '+id), custom=label!==('Սեղան '+id);
+    parts.push(`<g transform="rotate(${rot} ${cx} ${cy})">${shapeSvg}</g>`);
+    parts.push(`<text x="${cx}" y="${cy}" font-size="${numFont}" font-weight="800" fill="#111" text-anchor="middle" dominant-baseline="central">${id}</text>`);
+    if(custom) parts.push(`<text x="${cx}" y="${cy+numFont*0.72}" font-size="${Math.min(20,numFont*0.5)}" fill="#555" text-anchor="middle" dominant-baseline="central">${xml(label)}</text>`);
+    expand(cx,cy,bw,bh,rot);
+  });
+  if(!isFinite(minX)){ alert("Տպելու սեղան չկա։"); return; }
+
+  const pad=Math.max(24, Math.max(maxX-minX,maxY-minY)*0.03);
+  const vbX=minX-pad, vbY=minY-pad, vbW=(maxX-minX)+2*pad, vbH=(maxY-minY)+2*pad;
+  const landscape=vbW>vbH;                                   // orient page to the plan's shape
+  const pw=landscape?281:194, ph=landscape?194:281;          // A4 printable area (mm, 8mm margins)
+  const title="Սեղանների դասավորություն";
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${pw}mm" height="${ph-12}mm" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet" font-family="Arial,Helvetica,sans-serif">`
+    +`<rect x="${vbX}" y="${vbY}" width="${vbW}" height="${vbH}" fill="#fff"/>`+parts.join("")+`</svg>`;
+  const html=`<!doctype html><html lang="hy"><head><meta charset="utf-8"><title>${xml(title)}</title>`
+    +`<style>@page{size:A4 ${landscape?'landscape':'portrait'};margin:8mm}html,body{margin:0;padding:0;font-family:Arial,sans-serif}`
+    +`.ttl{text-align:center;font-weight:700;font-size:13px;margin:0 0 2mm;color:#222}svg{display:block;margin:0 auto}</style></head>`
+    +`<body><div class="ttl">${xml(title)}</div>${svg}</body></html>`;
+
+  const win=window.open("","_blank");
+  if(!win){ alert("Թույլատրիր ելնող պատուհանները (popup)՝ տպելու համար։"); return; }
+  win.document.open(); win.document.write(html); win.document.close();
+  const go=()=>{ try{ win.focus(); win.print(); }catch(e){} };
+  if(win.document.readyState==="complete") setTimeout(go,300); else win.onload=()=>setTimeout(go,200);
 }
 document.getElementById("printBtn").onclick=printMap;
 document.getElementById("exportBtn").onclick=()=>{
