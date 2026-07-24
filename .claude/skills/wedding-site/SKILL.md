@@ -86,7 +86,7 @@ Replacement workflow: originals live untouched in `assets/`; generate web files 
 
 ### RSVP flow
 - Form fields: name, guest count, attending radio, events checkboxes (our-day has one extra).
-- Deadline sentence in `.rsvp .ask` ("մինչև հունիսի 10" in the template — change to the new
+- Deadline sentence in `.rsvp .ask` ("մինչև օգոստոսի 10" in the template — change to the new
   deadline).
 - Submission: inline script POSTs JSON (`no-cors`) to `ENDPOINT` — a Google Apps Script Web App
   URL. **For Yeva & Mekhak, deploy a fresh Apps Script** (steps in `apps-script.gs` header) on a

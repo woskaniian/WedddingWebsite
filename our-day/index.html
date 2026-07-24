@@ -67,8 +67,8 @@
     }
 
     :root{
-      --wine:#023020;           /* page background — deep forest green */
-      --wine-band:#0a4530;      /* header bands — lighter green */
+      --wine: #031d16;           /* page background — deep forest green */
+      --wine-band: #06251b;      /* header bands — lighter green */
       --wine-deep:#011c12;      /* darker green for gradients */
       --wine-ink:#7b2d40;       /* burgundy accents on cream cards (unchanged) */
       --cream:#f5efe3;          /* cards / envelope */
@@ -139,9 +139,21 @@
       align-items:center;
       justify-content:center;
       gap:30px;
-      background:var(--wine);
+      background:
+        linear-gradient(160deg, rgba(2,48,32,.62), rgba(1,28,18,.78)),
+        radial-gradient(circle at 50% 42%, rgba(120,86,40,.28), transparent 60%),
+        url("../assets/first.jpg") center/cover no-repeat;
       padding:26px;
       transition:opacity 1s ease .15s;
+    }
+    /* vintage grain + vignette over the hero photo */
+    .intro::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,.45) 100%);
+      pointer-events:none;
+      mix-blend-mode:multiply;
     }
     .intro.done{opacity:0;pointer-events:none}
     .intro-from,.intro-names,.intro-hint{transition:opacity .5s ease}
@@ -157,6 +169,8 @@
       color:var(--cream-text);
       opacity:.9;
     }
+    .intro-from{text-shadow:0 1px 12px rgba(0,0,0,.6)}
+    .intro-hint{text-shadow:0 1px 10px rgba(0,0,0,.6)}
     .intro-names{
       font-family:"Pinyon Script",cursive;
       font-size:clamp(52px, 11vw, 92px);
@@ -164,122 +178,153 @@
       color:var(--cream-text);
       text-align:center;
       margin:-6px 0 4px;
+      text-shadow:0 2px 18px rgba(0,0,0,.55);
     }
+    /* lace frame wrapping the envelope */
+    .env-frame{
+      position:relative;
+      display:inline-block;
+    }
+    /* V-shaped lace draped along the envelope flap edges */
+    .env-lace-top{
+      position:absolute;
+      top:0;
+      left:50%;
+      transform:translateX(-50%) scaleY(.78);
+      transform-origin:50% 0;
+      width:100%;
+      z-index:5;
+      pointer-events:none;
+      filter:sepia(.3) brightness(1.04) drop-shadow(0 4px 8px rgba(0,0,0,.25));
+      transition:opacity .5s ease;
+    }
+    .envelope.open .env-lace-top{opacity:0}
     .envelope{
       position:relative;
-      width:min(360px, 84vw);
-      aspect-ratio:10 / 7;
+      width:min(440px, 88vw);
+      aspect-ratio:1000 / 663;
       border:0;
       padding:0;
       background:transparent;
       cursor:pointer;
       -webkit-tap-highlight-color:transparent;
-      filter:drop-shadow(0 24px 30px rgba(0,0,0,.4));
-      transition:transform .3s ease;
+      perspective:1400px;
+      filter:drop-shadow(0 24px 34px rgba(0,0,0,.5));
+      transition:transform .6s cubic-bezier(.2,.7,.2,1);
     }
-    .envelope:hover{transform:scale(1.02)}
-    .env-back,.env-front,.env-flap,.env-card{position:absolute;display:block}
+    .envelope:hover{transform:translateY(-3px)}
+    /* HD vintage drawn envelope — back pocket */
     .env-back{
-      inset:0;
-      background:linear-gradient(160deg, #ece2cd, #ded2b8);
-      border-radius:7px;
+      position:absolute; inset:0;
+      border-radius:11px;
+      background:
+        radial-gradient(130% 90% at 50% -10%, rgba(255,252,244,.5), transparent 55%),
+        linear-gradient(152deg, #f3ecdd 0%, #eae1cf 55%, #ded3bc 100%);
+      box-shadow:inset 0 0 46px rgba(120,95,55,.12);
       z-index:1;
     }
-    .env-card{
-      left:6%;
-      right:6%;
-      bottom:4%;
-      height:90%;
-      background:var(--polaroid);
-      border-radius:3px;
-      box-shadow:0 4px 14px rgba(0,0,0,.2);
+    /* front pocket — folded side/bottom panels with seam lines from the flap tip */
+    .env-front{
+      position:absolute; inset:0;
+      border-radius:11px;
+      clip-path:polygon(0 0, 50% 57%, 100% 0, 100% 100%, 0 100%);
+      background:
+        conic-gradient(from 0deg at 50% 57%,
+          #efe7d6 0deg, #efe7d6 52.4deg,
+          rgba(120,95,55,.30) 52.9deg,
+          #e7ddc8 53.4deg, #e7ddc8 119.2deg,
+          rgba(120,95,55,.30) 119.7deg,
+          #f0e7d4 120.2deg, #f0e7d4 239.8deg,
+          rgba(120,95,55,.30) 240.3deg,
+          #e7ddc8 240.8deg, #e7ddc8 306.6deg,
+          rgba(120,95,55,.30) 307.1deg,
+          #efe7d6 307.6deg, #efe7d6 360deg);
+      z-index:3;
+    }
+    /* triangular flap that lifts open */
+    .env-flap{
+      position:absolute; top:0; left:0;
+      width:100%; height:57%;
+      clip-path:polygon(0 0, 100% 0, 50% 100%);
+      background:linear-gradient(180deg, #f6f0e4 0%, #ece3d1 68%, #e2d8c3 100%);
+      transform-origin:50% 0;
+      z-index:4;
+      filter:drop-shadow(0 4px 5px rgba(90,70,40,.30));
+      transition:transform .7s cubic-bezier(.4,0,.25,1), z-index 0s .7s;
+      border-radius:11px 11px 0 0;
+    }
+    .envelope.open .env-flap{
+      transform:rotateX(172deg);
+      z-index:1;
+      transition:transform .7s cubic-bezier(.4,0,.25,1), z-index 0s 0s;
+    }
+    /* unifying vintage grain over the whole envelope */
+    .env-grain{
+      position:absolute; inset:0; z-index:7;
+      pointer-events:none;
+      border-radius:11px;
+      opacity:.06;
+      mix-blend-mode:multiply;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+    /* wax stamp at the flap tip, monogram embossed on it */
+    .env-stamp{
+      position:absolute;
+      top:57%;
+      left:50%;
+      width:29%;
+      transform:translate(-50%, -50%);
+      z-index:6;
+      filter:drop-shadow(0 5px 10px rgba(0,0,0,.35));
+      transition:opacity .5s ease, transform .5s ease;
+    }
+    .env-stamp img{width:100%;height:auto;display:block}
+    .env-stamp-mono{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(24px, 7vw, 40px);
+      line-height:1;
+      color:#f3e0d6;
+      text-shadow:0 1px 2px rgba(74,20,28,.7);
+    }
+    .env-stamp-mono i{font-style:normal;opacity:.7;margin:0 .04em}
+    .envelope.open .env-stamp{opacity:0;transform:translate(-50%,-50%) scale(.7)}
+    /* invitation card tucked in the pocket, rises out on open */
+    .env-letter{
+      position:absolute;
+      left:50%;
+      bottom:8%;
+      width:78%;
+      transform:translateX(-50%);
       z-index:2;
+      background:linear-gradient(#fdf9ef, #f5eddd);
+      border-radius:4px;
+      box-shadow:0 12px 26px rgba(0,0,0,.3);
+      padding:30px 18px 24px;
       display:flex;
       flex-direction:column;
       align-items:center;
-      justify-content:center;
-      gap:6px;
-      color:#39352c;
-      transition:transform .9s cubic-bezier(.2,.7,.2,1) .5s;
+      gap:8px;
+      text-align:center;
+      color:#4a3f33;
+      transition:transform .95s cubic-bezier(.2,.72,.2,1) .15s;
     }
-    .env-card::after{
+    .env-letter::after{
       content:"";
       position:absolute;
-      inset:7px;
-      border:1px solid rgba(123,45,64,.55);
+      inset:6px;
+      border:1px solid rgba(123,45,64,.5);
       border-radius:2px;
       pointer-events:none;
     }
-    .env-card .ec-invite{
-      font-family:"Arian AMU Serif",Georgia,serif;
-      font-style:italic;
-      font-size:11px;
-      opacity:.8;
-    }
-    .env-card .ec-names{
-      font-family:"Pinyon Script",cursive;
-      font-size:30px;
-      line-height:1;
-      color:var(--wine-ink);
-    }
-    .env-card .ec-date{
-      font-family:"Cormorant Garamond",Georgia,serif;
-      font-size:13px;
-      letter-spacing:0.3em;
-    }
-    .env-front{
-      inset:0;
-      background:linear-gradient(200deg, #f0e7d3 0%, #e6dbc2 55%, #ddd0b4 100%);
-      clip-path:polygon(0 0, 50% 44%, 100% 0, 100% 100%, 0 100%);
-      border-radius:7px;
-      z-index:3;
-    }
-    .env-flap{
-      top:0;
-      left:0;
-      width:100%;
-      height:55%;
-      background:linear-gradient(180deg, #f3ebd9 0%, #e4d9bf 90%);
-      clip-path:polygon(0 0, 100% 0, 50% 97%);
-      transform-origin:50% 0;
-      z-index:4;
-      transition:transform .65s cubic-bezier(.4,0,.2,1), z-index 0s .65s;
-      border-radius:7px 7px 0 0;
-    }
-    .envelope.open .env-flap{transform:rotateX(178deg);z-index:1}
-    .envelope.open .env-card{transform:translateY(-62%)}
-    .env-bow{
-      position:absolute;
-      top:14%;
-      left:50%;
-      transform:translateX(-50%);
-      width:min(150px, 38%);
-      z-index:6;
-      pointer-events:none;
-      filter:drop-shadow(0 4px 10px rgba(0,0,0,.2));
-      transition:opacity .4s ease, transform .4s ease;
-    }
-    .env-seal{
-      position:absolute;
-      top:46%;
-      left:50%;
-      width:64px;
-      height:74px;
-      margin-left:-32px;
-      z-index:5;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:radial-gradient(circle at 36% 30%, #8d3a50, var(--wine-ink) 52%, #4a141c 100%);
-      border-radius:48% 52% 46% 54% / 52% 46% 54% 48%;
-      box-shadow:0 3px 8px rgba(0,0,0,.3), inset 0 2px 6px rgba(255,255,255,.18);
-      color:#f3e6dc;
-      font-family:"Pinyon Script",cursive;
-      font-size:24px;
-      transition:opacity .4s ease, transform .4s ease;
-    }
-    .envelope.open .env-seal{opacity:0;transform:scale(.75)}
-    .envelope.open .env-bow{opacity:0;transform:translateX(-50%) scale(.8)}
+    .el-invite{font-family:"Arian AMU Serif",Georgia,serif;font-style:italic;font-size:13px;opacity:.85}
+    .el-names{font-family:"Pinyon Script",cursive;font-size:clamp(30px,7.5vw,46px);line-height:1;color:var(--wine-ink)}
+    .el-date{font-family:"Cormorant Garamond",Georgia,serif;font-size:13px;letter-spacing:.3em}
+    .envelope.open .env-letter{transform:translateX(-50%) translateY(-84%)}
     .intro-hint{
       margin:0;
       font-weight:700;
@@ -295,85 +340,77 @@
     }
 
     /* ==================== 1. HERO ==================== */
-    /* Desktop: the full photo fits the viewport HEIGHT (whole composition on one screen,
-       like the narrow preview), centered on a blurred copy of itself filling the sides.
-       The lace scales with the photo column, not the screen. */
+    /* The whole photo is always shown at its natural aspect ratio and full width, so it
+       scales uniformly on resize — the couple never gets cropped or drifts. The lace frame
+       is positioned as a percentage OF THE PHOTO (not the viewport), so it stays locked to
+       the same spot above the couple at every browser size. */
     .hero{
       position:relative;
-      background:#241a14;
+      height:100vh;
       overflow:hidden;
+      background:#1c2b1c;
     }
-    .hero-blur{
-      position:absolute;
-      inset:-30px;
-      background:url("../assets/first.jpg") center/cover;
-      filter:blur(16px) brightness(.7);
-    }
-    /* photo at full width, 20% cropped from top — scrolls naturally */
+    /* full-bleed photo; object-position keeps the couple anchored in frame at any size */
     .hero-stage{
-      position:relative;
-      width:100%;
-      height:auto;
+      position:absolute;
+      inset:0;
     }
     .hero .hero-photo{
       display:block;
       width:100%;
-      height:auto;
+      height:100%;
       object-fit:cover;
-      object-position:center 40%;
+      object-position:center 66%;
     }
+    /* lace + text are ONE object: the lace image fills the frame, and the text is sized in
+       container-query units (cqw) so it always scales together with the lace, at any size. */
     .lace-frame{
       position:absolute;
-      top:50%;
+      top:31%;
       left:50%;
       transform:translate(-50%, -50%);
-      width:43%;
+      width:26%;
+      container-type:inline-size;
+    }
+    .lace-frame .doily{
+      display:block;
+      width:100%;
+      height:auto;
+      filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));
     }
     /* soft dark tulle underlay so white text reads through the lace center */
     .lace-frame .tulle{
       position:absolute;
-      inset:12%;
-      border-radius:14%;
-      background:radial-gradient(circle, rgba(28,20,16,.5) 0%, rgba(28,20,16,.4) 70%, rgba(28,20,16,0) 100%);
-    }
-    .lace-frame .doily{
-      position:relative;
-      width:65%;
-      height:auto;
-      display:block;
-      filter:drop-shadow(0 10px 26px rgba(0,0,0,.35));
-    }
-    /* phones: photo at natural width, no side fill needed */
-    @media (max-width: 760px){
-      .hero{height:auto}
-      .hero-blur{display:none}
-      .hero-stage{height:auto;aspect-ratio:auto}
-      .hero .hero-photo{height:auto}
-      .lace-frame{width:100%}
+      inset:20%;
+      border-radius:16%;
+      background:radial-gradient(circle, rgba(28,20,16,.5) 0%, rgba(28,20,16,.38) 62%, rgba(28,20,16,0) 100%);
     }
     .lace-text{
       position:absolute;
-      inset:16% 12%;
+      inset:22%;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      gap:4px;
+      gap:2.5cqw;
       text-align:center;
       color:#fdfbf4;
       text-shadow:0 1px 10px rgba(0,0,0,.55);
     }
     .lace-text .ln-names{
       font-family:"Pinyon Script",cursive;
-      font-size:clamp(36px, 8vw, 54px);
-      line-height:1.12;
+      font-size:15cqw;
+      line-height:1.05;
     }
     .lace-text .ln-date,
     .lace-text .ln-place{
       font-family:"Arian AMU Serif",Georgia,serif;
       font-style:italic;
-      font-size:clamp(14px, 2vw, 18px);
+      font-size:4.6cqw;
       letter-spacing:.05em;
+    }
+    @media (max-width: 760px){
+      .lace-frame{width:60%; top:30%}
     }
     .music-btn[hidden]{display:none}
     .music-btn{
@@ -404,18 +441,27 @@
     .band{
       background:var(--wine-band);
       text-align:center;
-      padding:38px 20px 30px;
+      padding:38px 20px 6px;
     }
     .band .script{
       font-size:clamp(34px, 6.8vw, 54px);
       line-height:1.1;
       color:var(--cream-text);
     }
+    .band-sparkle{
+      display:inline-block;
+      height:2.5em;
+      width:auto;
+      vertical-align:middle;
+      margin-left:12px;
+      margin-bottom: 10px;
+      filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));
+    }
     .countdown{
       display:flex;
       justify-content:center;
       gap:clamp(20px, 5vw, 42px);
-      padding:6px 20px 34px;
+      padding:0 20px 20px;
       background:var(--wine-band);
       color:var(--cream-text);
     }
@@ -435,19 +481,25 @@
     /* ==================== 3. TRAY PHOTO + STORY ==================== */
     .story-section{
       position:relative;
-      padding:46px 22px 56px;
+      padding:88px 22px 132px;
       text-align:center;
       overflow:hidden;
     }
-    /* vintage damask behind the story — blurred and faded into the page green, no hard edges */
-    .story-section::before{
+    /* soft photo backgrounds behind the story + details — blurred and faded into the page green */
+    .details-section{position:relative; overflow:hidden}
+    .story-section::before,
+    .details-section::before{
       content:"";
       position:absolute;
       inset:-24px;
-      background:url("../assets/vintage-bg.jpg") center/cover;
-      filter:blur(3px) brightness(.8) saturate(.85);
+      background-position:center;
+      background-size:cover;
+      filter:blur(4px) brightness(.72) saturate(.9);
     }
-    .story-section::after{
+    .story-section::before{background-image:url("../assets/background2-web.jpg")}
+    .details-section::before{background-image:url("../assets/opening.jpg")}
+    .story-section::after,
+    .details-section::after{
       content:"";
       position:absolute;
       inset:0;
@@ -455,31 +507,96 @@
         linear-gradient(to bottom, var(--wine) 0%, rgba(2,48,32,0) 14%, rgba(2,48,32,0) 86%, var(--wine) 100%),
         rgba(2,48,32,.4);
     }
-    .story-section > *{
+    .story-section > *,
+    .details-section > *{
       position:relative;
       z-index:1;
     }
-    .tray-piece{
+    /* round frame stays centered at the top of the story */
+    .frame-solo{
+      display:flex;
+      justify-content:center;
+      margin:0 auto 8px;
+    }
+    .pframe{
       position:relative;
-      width:min(490px, 96%);
-      margin:0 auto 40px;
+      margin:0;
+      filter:drop-shadow(0 14px 26px rgba(0,0,0,.45));
     }
-    .tray-piece .tray{
-      width:100%;
+    .frame-solo .pframe--round{width:min(360px, 55%)}
+    /* the two ornate side frames sit centered on the border between the two sections */
+    .frames-bridge{
+      position:relative;
+      max-width:1240px;
+      margin:0 auto;
+      height:0;
+      z-index:6;
+      pointer-events:none;
+    }
+    /* lace divider line straddling the story / details seam */
+    .seam-lace{
+      position:relative;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      line-height:0;
+      margin:-4vw 0 -0.8vw;
+      opacity:.75;
+      z-index:6;
+      pointer-events:none;
+    }
+    .seam-lace img{
       display:block;
-      filter:drop-shadow(0 16px 28px rgba(0,0,0,.4));
+      width:25%;
+      height:auto;
+      filter:drop-shadow(0 3px 7px rgba(0,0,0,.35));
     }
-    .tray-photo{
+    .frames-bridge .pframe{position:absolute}
+    .frames-bridge .pframe--h{left:0.5%;  width:min(330px, 26vw); transform:translateY(-22%) rotate(-2deg)}
+    .frames-bridge .pframe--v{right:0.5%; width:min(255px, 21vw); transform:translateY(-22%) rotate(2deg)}
+    .pf-border{
+      position:relative;
+      display:block;
+      width:100%;
+      height:auto;
+      z-index:2;
+      pointer-events:none;
+    }
+    .pf-photo{
       position:absolute;
-      inset:15%;
-      border-radius:50%;
+      z-index:1;
       overflow:hidden;
-      box-shadow:inset 0 4px 18px rgba(0,0,0,.4);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:
+        repeating-linear-gradient(45deg, rgba(120,95,55,.07) 0 9px, transparent 9px 18px),
+        linear-gradient(150deg, #efe7d6, #dccfb6);
+      color:#8a6f4a;
+      font-family:"Cormorant Garamond",Georgia,serif;
+      font-size:clamp(9px, 1.1vw, 12px);
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      box-shadow:inset 0 3px 14px rgba(0,0,0,.3);
     }
-    .tray-photo img{
+    .pf-photo img{
+      position:absolute;
+      inset:0;
       width:100%;
       height:100%;
       object-fit:cover;
+    }
+    /* opening rectangles, measured as fractions of each frame image */
+    .pframe--h .pf-photo{left:15.0%; top:17.3%; width:70.3%; height:65.7%}
+    .pframe--h .pf-photo img{object-position:42% 72%}
+    .pframe--v .pf-photo img{object-position:center 38%}
+    .pframe--round .pf-photo{left:16.5%; top:18.5%; width:68%; height:72%; border-radius:50%}
+    .pframe--round .pf-photo img{object-position:center 30%; transform:rotate(-6deg) translateX(-3%); transform-origin:center}
+    .pframe--v .pf-photo{left:16.9%; top:15.0%; width:65.7%; height:70.2%}
+    @media (max-width: 760px){
+      .frame-solo .pframe--round{width:min(360px, 74%)}
+      .frames-bridge .pframe--h{width:40vw}
+      .frames-bridge .pframe--v{width:32vw}
     }
     .story-text{
       max-width:520px;
@@ -499,7 +616,7 @@
     /* ==================== 4. COLLAGE / RSVP CALLOUT ==================== */
     .collage-section{
       position:relative;
-      padding:64px 20px 80px;
+      padding:88px 20px 88px;
       overflow:hidden;
     }
     .collage-section .collage-bg{
@@ -567,6 +684,30 @@
       font-weight:700;
       margin-top:8px;
     }
+    /* decorative Latin script headers fall back to an Armenian/Cyrillic serif for hy/ru */
+    html[lang="hy"] .plaque .kr,
+    html[lang="ru"] .plaque .kr,
+    html[lang="hy"] .cream-card .card-header,
+    html[lang="ru"] .cream-card .card-header,
+    html[lang="hy"] .band .script,
+    html[lang="ru"] .band .script,
+    html[lang="hy"] .signoff,
+    html[lang="ru"] .signoff{
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+    }
+    html[lang="hy"] .plaque .kr,
+    html[lang="ru"] .plaque .kr{
+      font-size:clamp(18px, 3.2vw, 23px);
+      line-height:1.28;
+    }
+    html[lang="hy"] .cream-card .card-header,
+    html[lang="ru"] .cream-card .card-header{
+      font-size:clamp(22px, 4.6vw, 30px);
+      line-height:1.15;
+    }
+    html[lang="hy"] .band .script,
+    html[lang="ru"] .band .script{font-size:clamp(24px, 5vw, 38px)}
     .collage-pol{
       position:absolute;
       background:var(--polaroid);
@@ -586,28 +727,27 @@
       transform:rotate(-4deg);
     }
     .cp-1{
-      top:300px;
-      left:2%;
+      top:265px;
+      left:3%;
       width:min(200px, 46%);
       transform:rotate(-5deg);
+      z-index:3;
     }
     .cp-2{
-      top:380px;
-      right:4%;
+      top:205px;
+      right:-40%;
       width:min(220px, 50%);
       transform:rotate(3deg);
-      z-index:2;
+      z-index:3;
     }
 
     /* ==================== 5. TRAY + DETAILS PLAQUE ==================== */
-    .details-callout-section{
-      padding:64px 20px 56px;
-      text-align:center;
-    }
+    /* decorative tray collage that overlaps the top of the details card */
     .tray-collage{
       position:relative;
-      width:min(400px, 90%);
+      width:min(380px, 88%);
       margin:0 auto;
+      z-index:2;
     }
     .tray-collage .tray{
       width:100%;
@@ -631,53 +771,41 @@
       top:auto;
       right:auto;
       left:50%;
-      bottom:-12%;
+      bottom:-22%;
       transform:translateX(-50%) rotate(-2deg);
       width:min(280px, 72%);
       z-index:2;
+      cursor:default;
     }
-
-    /* ==================== 6. OUR LOVE STORY ==================== */
-    .love-section{
-      position:relative;
-      padding:70px 20px 80px;
-      overflow:hidden;
-      text-align:center;
+    /* details card slides up so the collage + plaque overlap its top edge */
+    #details{
+      margin-top:-34px;
+      z-index:1;
+      padding:40px 40px 52px;
+      background:transparent;
+      border:82px solid transparent;
+      border-image:url("../assets/back-web.png") 138 fill / 82px / 0 stretch;
+      box-shadow:none;
+      color:#ffffff;
     }
-    .love-section .love-bg{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      object-fit:cover;
-      filter:grayscale(1) brightness(.8);
-    }
-    .love-title{
-      position:relative;
-      font-family:"Pinyon Script",cursive;
-      font-size:clamp(40px, 8vw, 56px);
-      color:#fdfbf4;
-      text-shadow:0 1px 12px rgba(0,0,0,.5);
-      line-height:1.1;
-      margin:0 0 10px;
-    }
-    .love-sub{
-      position:relative;
+    #details::after{display:none}
+    #details .card-sub,
+    #details .ev-time,
+    #details .ev-title,
+    #details .ev-venue,
+    #details .ev-addr{
+      color:#ffffff;
       font-weight:700;
-      letter-spacing:0.26em;
-      font-size:14px;
-      color:#fdfbf4;
-      text-shadow:0 1px 10px rgba(0,0,0,.5);
-      margin:0;
-      text-transform:uppercase;
+      text-shadow:0 1px 4px rgba(0,0,0,.55);
     }
 
-    /* ==================== 7. DETAILS + RSVP CARDS ==================== */
+    /* ==================== 6. DETAILS + RSVP CARDS ==================== */
     .cards-wrap{
       max-width:560px;
       margin:0 auto;
-      padding:64px 20px 20px;
+      padding:88px 20px 88px;
     }
+    .details-section .cards-wrap{max-width:780px}
     .cream-card{
       position:relative;
       background:var(--cream);
@@ -844,11 +972,11 @@
       font-size:72px;
       line-height:1;
       color:var(--cream-text);
-      letter-spacing:-0.28em;
+      letter-spacing:0.04em;
       margin:0 0 26px;
     }
     .footer .monogram span:last-child{
-      margin-left:-0.12em;
+      margin-left:0.1em;
       opacity:.95;
     }
     .footer .q{
@@ -870,16 +998,68 @@
       transform:translate3d(0, 0, 0);
     }
 
-    @media (max-width: 480px){
-      .collage-inner{min-height:600px}
-      .plaque{top:130px}
-      .cp-1{top:320px}
-      .cp-2{top:400px}
+    /* phones: gallery polaroids become one tidy centered row, plaque below */
+    @media (max-width: 600px){
+      .story-section{padding-top:40px}
+      .collage-inner{
+        min-height:0;
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:center;
+        align-items:flex-start;
+        gap:8px;
+      }
+      .collage-pol{
+        position:static;
+        flex:0 0 27%;
+        width:27%;
+        min-width:0;
+        order:1;
+        padding:4px 4px 12px;
+        box-shadow:0 6px 13px rgba(0,0,0,.32);
+      }
+      .cp-0{transform:rotate(-4deg)}
+      .cp-1{transform:rotate(-3deg)}
+      .cp-2{transform:rotate(4deg)}
+      .collage-section .plaque{
+        position:static;
+        order:2;
+        flex:1 0 100%;
+        min-width:0;
+        max-width:250px;
+        margin:22px auto 0;
+        padding:18px 18px 16px;
+        transform:rotate(-1deg);
+      }
+      html .collage-section .plaque .kr{font-size:16px; line-height:1.2}
+      .collage-section .plaque .kr-by{font-size:11px; margin-top:5px}
+      .collage-section .plaque .kr-click{font-size:9px; letter-spacing:.12em; margin-top:5px}
+    }
+
+    /* phones: shrink the whole details block uniformly so it fits and the lace isn't pressed */
+    @media (max-width: 600px){
+      .details-section .cards-wrap{max-width:none; padding:44px 8px 40px}
+      #details{
+        margin-top:-16px;
+        padding:16px 12px 20px;
+        border-width:22px;
+        border-image:url("../assets/back-web.png") 138 fill / 22px / 0 stretch;
+      }
+      #details .event{padding:7px 4px}
+      #details .card-sub{font-size:11px; margin:0 0 8px}
+      #details .ev-time{font-size:19px}
+      #details .ev-title,
+      #details .ev-venue{font-size:12px; margin-top:2px}
+      #details .ev-addr{font-size:11px}
+      #details .map-link{margin-top:5px; padding:4px 13px; font-size:10px}
+      .tray-collage{width:min(250px, 74%)}
+      .details-plaque{width:min(200px, 72%)}
+      .details-plaque .kr{font-size:clamp(16px, 4.6vw, 20px)}
     }
 
     @media (prefers-reduced-motion: reduce){
       .reveal{opacity:1 !important;transform:none !important;transition:none !important}
-      .intro,.env-flap,.env-card,.env-seal,.env-bow{transition:none !important}
+      .intro,.envelope,.env-stamp,.env-lace-top{transition:none !important}
       .intro-hint{animation:none}
     }
   </style>
@@ -897,26 +1077,31 @@
   <div class="intro" id="intro">
     <p class="intro-from" data-i18n="introFrom">Փոքրիկ նամակ Ձեզ համար՝</p>
     <div class="intro-names">Mekhak &amp; Yeva</div>
-    <button class="envelope" id="envelope" aria-label="Բացել հրավերը">
-      <span class="env-back"></span>
-      <span class="env-card">
-        <span class="ec-invite" data-i18n="ecInvite">Հրավիրում ենք Ձեզ</span>
-        <span class="ec-names">Mekhak &amp; Yeva</span>
-        <span class="ec-date">23·08·2026</span>
-      </span>
-      <span class="env-front"></span>
-      <span class="env-flap"></span>
-      <img class="env-bow" src="../assets/elements/el6.png" alt="" />
-      <span class="env-seal">M·Y</span>
-    </button>
+    <div class="env-frame">
+      <button class="envelope" id="envelope" aria-label="Բացել հրավերը">
+        <span class="env-back"></span>
+        <div class="env-letter">
+          <span class="el-invite" data-i18n="ecInvite">Հրավիրում ենք Ձեզ</span>
+          <span class="el-names">Mekhak &amp; Yeva</span>
+          <span class="el-date">23 · 08 · 2026</span>
+        </div>
+        <span class="env-front"></span>
+        <span class="env-flap"></span>
+        <img class="env-lace-top" src="../assets/envelope-lace-web.png" alt="" />
+        <span class="env-stamp">
+          <img src="../assets/stamp-web.png" alt="" />
+          <span class="env-stamp-mono">M<i>·</i>Y</span>
+        </span>
+        <span class="env-grain"></span>
+      </button>
+    </div>
     <p class="intro-hint" data-i18n="introHint">Սեղմեք ծրարը՝ բացելու համար</p>
   </div>
 
   <!-- ==================== 1. HERO ==================== -->
   <section class="hero">
-    <div class="hero-blur"></div>
     <div class="hero-stage">
-      <img class="hero-photo" src="../assets/first.jpg" alt="" />
+      <img class="hero-photo" src="../assets/hero0.jpg" alt="" />
       <div class="lace-frame">
         <div class="tulle"></div>
         <img class="doily" src="../assets/elements/lace.png" alt="" />
@@ -936,7 +1121,7 @@
 
   <!-- ==================== 2. BAND + COUNTDOWN ==================== -->
   <div class="band">
-    <span class="script">We Are Getting Married</span>
+    <span class="script" data-i18n="band">We Are Getting Married</span><img class="band-sparkle" src="../assets/sparkle-web.png" alt="" />
   </div>
   <div class="countdown" id="countdown" aria-label="Countdown to the wedding">
     <div class="cd-unit"><div class="cd-num" id="cd-days">—</div><div class="cd-label" data-i18n="cdDays">DAYS</div></div>
@@ -947,56 +1132,54 @@
 
   <!-- ==================== 3. TRAY + STORY ==================== -->
   <section class="story-section">
-    <div class="tray-piece reveal">
-      <img class="tray" src="../assets/elements/tray.png" alt="" />
-      <div class="tray-photo"><img src="../assets/ending.jpg" alt="" /></div>
+    <div class="frame-solo reveal">
+      <figure class="pframe pframe--round">
+        <div class="pf-photo"><img src="../assets/hero.jpg" alt="Mekhak &amp; Yeva" /></div>
+        <img class="pf-border" src="../assets/frame-first-web.png" alt="" />
+      </figure>
     </div>
     <div class="story-text reveal">
       <p data-i18n="story1">Հարգելի՛ հյուրեր, սիրո՛վ հրավիրում ենք Ձեզ ներկա գտնվելու մեր կյանքի կարևորագույն իրադարձություններից մեկին։</p>
       <p data-i18n="story2">Մենք հավատում ենք, որ երջանկությունն ամբողջական է դառնում, երբ այն կիսում ես քեզ ամենամոտ մարդկանց հետ։ Ձեր ներկայությունը մեզ համար ամեն ինչ է։</p>
+      <p data-i18n="story3"> Ձեր ներկայությունը մեզ համար ամեն ինչ է։</p>
     </div>
-    <p class="signoff reveal">With all our love,<br/>Mekhak &amp; Yeva</p>
+    <p class="signoff reveal"><span data-i18n="signoff">With all our love,</span><br/><span data-i18n="names">Mekhak &amp; Yeva</span></p>
   </section>
 
-  <!-- ==================== 4. COLLAGE / RSVP CALLOUT ==================== -->
-  <section class="collage-section">
-    <img class="collage-bg" src="../assets/photos.jpg" alt="" />
-    <div class="collage-inner">
-      <div class="collage-pol cp-0 reveal"><img src="../assets/gallery-1.jpg" alt="" /></div>
-      <button class="plaque reveal" data-scroll="#rsvp">
-        <span class="kr">Kindly<br/>Respond</span>
-        <span class="kr-by" style="display:block" data-i18n="deadlineShort">մինչև հունիսի 10</span>
-        <span class="kr-click" style="display:block">CLICK TO RSVP</span>
-      </button>
-      <div class="collage-pol cp-1 reveal"><img src="../assets/gallery-2.jpg" alt="" /></div>
-      <div class="collage-pol cp-2 reveal"><img src="../assets/gallery-3.jpg" alt="" /></div>
-    </div>
-  </section>
+  <!-- side frames straddling the story / details border -->
+  <!--
+  <div class="frames-bridge reveal">
+    <figure class="pframe pframe--h">
+      <div class="pf-photo"><img src="../assets/inside-horizontal-web.jpg" alt="Mekhak &amp; Yeva" /></div>
+      <img class="pf-border" src="../assets/frame-horizontal-web.png" alt="" />
+    </figure>
+    <figure class="pframe pframe--v">
+      <div class="pf-photo"><img src="../assets/inside-vertical-web.jpg" alt="Mekhak &amp; Yeva" /></div>
+      <img class="pf-border" src="../assets/frame-vertical-web.png" alt="" />
+    </figure>
+  </div>
+  -->
 
-  <!-- ==================== 5. TRAY + DETAILS PLAQUE ==================== -->
-  <section class="details-callout-section">
+  <!-- lace divider line on the seam between story and details (4 small copies in sequence) -->
+  <div class="seam-lace">
+    <img src="../assets/lace-line-web.png" alt="" />
+    <img src="../assets/lace-line-web.png" alt="" />
+    <img src="../assets/lace-line-web.png" alt="" />
+    <img src="../assets/lace-line-web.png" alt="" />
+  </div>
+
+  <!-- ==================== 4. DETAILS ==================== -->
+  <section class="details-section">
+  <div class="cards-wrap">
     <div class="tray-collage reveal">
       <img class="tray" src="../assets/elements/el8.png" alt="" />
-      <div class="tc-pol tc-1"><img src="../assets/hero.jpg" alt="" /></div>
+      <div class="tc-pol tc-1"><img src="../assets/1of2.jpg" alt="" /></div>
       <div class="tc-pol tc-2"><img src="../assets/opening.jpg" alt="" /></div>
-      <button class="plaque details-plaque" data-scroll="#details" aria-label="Օրվա ծրագիրը">
-        <span class="kr-click" style="display:block">CLICK TO SEE</span>
-        <span class="kr">The Details</span>
-      </button>
+      <div class="plaque details-plaque" aria-hidden="true">
+        <span class="kr" data-i18n="detailsTitle">The Details</span>
+      </div>
     </div>
-  </section>
-
-  <!-- ==================== 6. OUR LOVE STORY ==================== -->
-  <section class="love-section">
-    <img class="love-bg" src="../assets/mistery.jpg" alt="" />
-    <p class="love-title reveal">Our Love Story</p>
-    <p class="love-sub reveal" data-i18n="loveSub">Մեր պատմությունը՝ շուտով</p>
-  </section>
-
-  <!-- ==================== 7. DETAILS + RSVP ==================== -->
-  <div class="cards-wrap">
     <section class="cream-card reveal" id="details">
-      <h2 class="card-header">The Details</h2>
       <p class="card-sub" data-i18n="detailsSub">Օրվա ծրագիրը</p>
 
       <div class="event">
@@ -1010,7 +1193,7 @@
         <div class="ev-time">13:00</div>
         <div class="ev-title" data-i18n="ev2Title">Հարսի Տուն</div>
         <div class="ev-addr" data-i18n="ev2Addr">ք. Երևան, Էլեն Բյուզանդ 1/1</div>
-        <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=Yelena+Byuzand+1%2F1+Yerevan" target="_blank" rel="noopener" data-i18n="map">քարտեզ</a>
+        <a class="map-link" href="https://maps.app.goo.gl/sZqsb4ArXMxcuPGE7" target="_blank" rel="noopener" data-i18n="map">քարտեզ</a>
       </div>
 
       <div class="event">
@@ -1030,11 +1213,31 @@
       </div>
     </section>
 
+  </div>
+  </section>
+
+  <!-- ==================== 4. COLLAGE / RSVP CALLOUT ==================== -->
+  <section class="collage-section">
+    <img class="collage-bg" src="../assets/photos.jpg" alt="" />
+    <div class="collage-inner">
+      <div class="collage-pol cp-0 reveal"><img src="../assets/photo1-web.jpg" alt="" /></div>
+      <button class="plaque reveal" data-scroll="#rsvp">
+        <span class="kr" data-i18n="krRespond">Kindly Respond</span>
+        <span class="kr-by" style="display:block" data-i18n="deadlineShort">մինչև օգոստոսի 10</span>
+        <span class="kr-click" style="display:block" data-i18n="krClick">CLICK TO RSVP</span>
+      </button>
+      <div class="collage-pol cp-1 reveal"><img src="../assets/photo2-web.jpg" alt="" /></div>
+      <div class="collage-pol cp-2 reveal"><img src="../assets/photo3-web.jpg" alt="" /></div>
+    </div>
+  </section>
+
+  <!-- ==================== 7. RSVP ==================== -->
+  <div class="cards-wrap">
     <section class="cream-card reveal" id="rsvp">
-      <h2 class="card-header">Kindly Respond</h2>
+      <h2 class="card-header" data-i18n="krRespond">Kindly Respond</h2>
       <p class="card-sub">RSVP</p>
       <form id="rsvp-form" class="rsvp-form" novalidate>
-        <p class="ask" data-i18n="ask">Խնդրում ենք հաստատել Ձեր մասնակցությունը՝ լրացնելով այս հարցաշարը մինչև հունիսի 10։</p>
+        <p class="ask" data-i18n="ask">Խնդրում ենք հաստատել Ձեր մասնակցությունը՝ լրացնելով այս հարցաշարը մինչև օգոստոսի 10։</p>
         <div class="field">
           <label for="rsvp-name" data-i18n="labelName">Անուն, ազգանուն</label>
           <input id="rsvp-name" name="name" type="text" required autocomplete="name" />
@@ -1086,8 +1289,7 @@
   <!-- ==================== 8. FOOTER ==================== -->
   <footer class="footer">
     <p class="monogram"><span>M</span><span>Y</span></p>
-    <p class="q" data-i18n="footerQ">Հարցերի դեպքում կապվեք մեզ հետ</p>
-    <p class="signoff">all our love,<br/>Mekhak &amp; Yeva</p>
+    <p class="signoff"><span data-i18n="signoff">With all our love,</span><br/><span data-i18n="names">Mekhak &amp; Yeva</span></p>
   </footer>
 
   <script>
@@ -1102,16 +1304,23 @@
           heroPlace: 'Երևան, Հայաստան',
           cdDays: 'ՕՐ', cdHours: 'ԺԱՄ', cdMinutes: 'ՐՈՊԵ', cdSeconds: 'ՎԱՅՐԿՅԱՆ',
           story1: 'Հարգելի՛ հյուրեր, սիրո՛վ հրավիրում ենք Ձեզ ներկա գտնվելու մեր կյանքի կարևորագույն իրադարձություններից մեկին։',
-          story2: 'Մենք հավատում ենք, որ երջանկությունն ամբողջական է դառնում, երբ այն կիսում ես քեզ ամենամոտ մարդկանց հետ։ Ձեր ներկայությունը մեզ համար ամեն ինչ է։',
-          deadlineShort: 'մինչև հունիսի 10',
-          loveSub: 'Մեր պատմությունը՝ շուտով',
+          story2: 'Մենք հավատում ենք, որ երջանկությունն ամբողջական է դառնում, երբ այն կիսում ես քեզ ամենամոտ մարդկանց հետ։',
+          story3: 'Ձեր ներկայությունը մեզ համար ամեն ինչ է։',
+          deadlineShort: 'մինչև օգոստոսի 10',
+          krRespond: 'Խնդրում ենք հաստատել մասնակցությունը',
+          krClick: 'ՍԵՂՄԵՔ ՊԱՏԱՍԽԱՆԵԼՈՒ ՀԱՄԱՐ',
+          band: 'Մենք ամուսնանում ենք',
+          detailsTitle: 'Մանրամասներ',
+          detailsClick: 'ՍԵՂՄԵՔ ԴԻՏԵԼՈՒ ՀԱՄԱՐ',
+          signoff: 'Մեծ սիրով,',
+          names: 'Մեխակ և Եվա',
           detailsSub: 'Օրվա ծրագիրը',
           ev1Title: 'Փեսայի Տուն', ev1Addr: 'ք. Երևան, Հրաչյա Քոչար 22',
           ev2Title: 'Հարսի Տուն', ev2Addr: 'ք. Երևան, Էլեն Բյուզանդ 1/1',
           ev3Title: 'Պսակադրություն', ev3Venue: 'Սուրբ Զորավոր Աստվածածին Եկեղեցի', ev3Addr: 'ք. Երևան, Ղազար Փարպեցի 9',
           ev4Title: 'Հարսանեկան Խնջույք', ev4Venue: '«Wine Corner» ռեստորանային համալիր', ev4Addr: 'ք. Աշտարակ',
           map: 'քարտեզ',
-          ask: 'Խնդրում ենք հաստատել Ձեր մասնակցությունը՝ լրացնելով այս հարցաշարը մինչև հունիսի 10։',
+          ask: 'Խնդրում ենք հաստատել Ձեր մասնակցությունը՝ լրացնելով այս հարցաշարը մինչև օգոստոսի 10։',
           labelName: 'Անուն, ազգանուն', labelGuests: 'Հյուրերի քանակ',
           legendAttend: 'Կմասնակցե՞ք մեր հարսանիքին։', legendEvents: 'Ո՞ր միջոցառմանն եք մասնակցելու։',
           optYes: 'Այո, սիրով կմասնակցեմ։', optNo: 'Ցավոք, չեմ կարող մասնակցել',
@@ -1121,7 +1330,6 @@
           msgEvents: 'Խնդրում ենք ընտրել առնվազն մեկ միջոցառում։',
           msgThanks: 'Շնորհակալություն։ Ձեր պատասխանը գրանցվեց։',
           msgError: 'Տեղի ունեցավ սխալ։ Խնդրում ենք կրկին փորձել։',
-          footerQ: 'Հարցերի դեպքում կապվեք մեզ հետ'
         },
         en: {
           introFrom: 'A little something for you, from',
@@ -1131,16 +1339,23 @@
           heroPlace: 'Yerevan, Armenia',
           cdDays: 'DAYS', cdHours: 'HOURS', cdMinutes: 'MINUTES', cdSeconds: 'SECONDS',
           story1: 'Dear guests, with love we invite you to be with us on one of the most important days of our lives.',
-          story2: 'We believe happiness becomes complete when it is shared with the people closest to you. Your presence means everything to us.',
-          deadlineShort: 'by 10 June',
-          loveSub: 'Our story — coming soon',
+          story2: 'We believe happiness becomes complete when it is shared with the people closest to you.',
+          story3: 'Your presence means everything to us.',
+          deadlineShort: 'by 10 August',
+          krRespond: 'Kindly Respond',
+          krClick: 'CLICK TO RESPOND',
+          band: 'We Are Getting Married',
+          detailsTitle: 'The Details',
+          detailsClick: 'CLICK TO SEE',
+          signoff: 'With all our love,',
+          names: 'Mekhak & Yeva',
           detailsSub: 'Timing of the day',
           ev1Title: "Groom's House", ev1Addr: '22 Hrachya Kochar St, Yerevan',
           ev2Title: "Bride's House", ev2Addr: '1/1 Elen Byuzand St, Yerevan',
           ev3Title: 'Wedding Ceremony', ev3Venue: 'St. Zoravor Astvatsatsin Church', ev3Addr: '9 Ghazar Parpetsi St, Yerevan',
           ev4Title: 'Wedding Reception', ev4Venue: '“Wine Corner” restaurant complex', ev4Addr: 'Ashtarak',
           map: 'map',
-          ask: 'Please confirm your attendance by filling out this form before 10 June.',
+          ask: 'Please confirm your attendance by filling out this form before 10 August.',
           labelName: 'Full name', labelGuests: 'Number of guests',
           legendAttend: 'Will you attend our wedding?', legendEvents: 'Which events will you attend?',
           optYes: 'Yes, I will gladly attend', optNo: 'Unfortunately, I cannot attend',
@@ -1150,7 +1365,6 @@
           msgEvents: 'Please choose at least one event.',
           msgThanks: 'Thank you! Your response has been recorded.',
           msgError: 'Something went wrong. Please try again.',
-          footerQ: 'If there are any questions, feel free to reach out'
         },
         ru: {
           introFrom: 'Небольшое письмо для вас от',
@@ -1160,16 +1374,22 @@
           heroPlace: 'Ереван, Армения',
           cdDays: 'ДНИ', cdHours: 'ЧАСЫ', cdMinutes: 'МИНУТЫ', cdSeconds: 'СЕКУНДЫ',
           story1: 'Дорогие гости, с любовью приглашаем вас разделить с нами один из самых важных дней нашей жизни.',
-          story2: 'Мы верим, что счастье становится полным, когда делишь его с самыми близкими людьми. Ваше присутствие для нас — всё.',
-          deadlineShort: 'до 10 июня',
-          loveSub: 'Наша история — скоро',
+          story2: 'Мы верим, что счастье становится полным, когда делишь его с самыми близкими людьми.',
+          deadlineShort: 'до 10 августа',
+          krRespond: 'Просим подтвердить участие',
+          krClick: 'НАЖМИТЕ, ЧТОБЫ ОТВЕТИТЬ',
+          band: 'Мы женимся',
+          detailsTitle: 'Детали',
+          detailsClick: 'НАЖМИТЕ, ЧТОБЫ УЗНАТЬ',
+          signoff: 'С любовью,',
+          names: 'Мехак и Ева',
           detailsSub: 'Программа дня',
           ev1Title: 'Дом жениха', ev1Addr: 'Ереван, ул. Грачья Кочара 22',
           ev2Title: 'Дом невесты', ev2Addr: 'Ереван, ул. Элен Бюзанд 1/1',
           ev3Title: 'Венчание', ev3Venue: 'Церковь Сурб Зоравор Аствацацин', ev3Addr: 'Ереван, ул. Казара Парпеци 9',
           ev4Title: 'Свадебный банкет', ev4Venue: 'Ресторанный комплекс «Wine Corner»', ev4Addr: 'г. Аштарак',
           map: 'карта',
-          ask: 'Пожалуйста, подтвердите своё участие, заполнив эту анкету до 10 июня.',
+          ask: 'Пожалуйста, подтвердите своё участие, заполнив эту анкету до 10 августа.',
           labelName: 'Имя, фамилия', labelGuests: 'Количество гостей',
           legendAttend: 'Придёте ли вы на нашу свадьбу?', legendEvents: 'В каких событиях вы примете участие?',
           optYes: 'Да, с радостью приду', optNo: 'К сожалению, не смогу прийти',
@@ -1179,7 +1399,6 @@
           msgEvents: 'Пожалуйста, выберите хотя бы одно событие.',
           msgThanks: 'Спасибо! Ваш ответ записан.',
           msgError: 'Произошла ошибка. Пожалуйста, попробуйте ещё раз.',
-          footerQ: 'Если есть вопросы — напишите нам'
         }
       };
       window.__lang = 'hy';
@@ -1219,7 +1438,7 @@
         if(envelope.classList.contains('open')) return;
         envelope.classList.add('open');
         intro.classList.add('opening');
-        var wait = reduced ? 150 : 1600;
+        var wait = reduced ? 150 : 2100;
         setTimeout(function(){
           intro.classList.add('done');
           document.body.classList.remove('locked');
@@ -1283,7 +1502,7 @@
   <script>
     /* RSVP form submission → Google Apps Script Web App */
     (function(){
-      var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwHnxOPog1M03xvFbR3H0c1PBy1sTruJcy90JhNc7ogs-52iIbm6Mk2advodrmRgqAxYw/exec';
+      var ENDPOINT = 'https://script.google.com/macros/s/AKfycbxCBShs3HGMBtU_w5wD9boXsD81ZJ-CTL3vamppJXFELWbJnpm5_GGffyOTHIkLiqFX/exec';
 
       var form = document.getElementById('rsvp-form');
       if(!form) return;

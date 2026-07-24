@@ -1,0 +1,1233 @@
+<!doctype html>
+<html lang="hy">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mekhak & Yeva — 23/08/2026</title>
+  <meta name="description" content="Mekhak & Yeva — Wedding Invitation, 23/08/2026" />
+  <link rel="icon" type="image/png" href="/assets/favicon.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://va-wedding.cc/our-day/" />
+  <meta property="og:title" content="Mekhak & Yeva — 23/08/2026" />
+  <meta property="og:description" content="Wedding Invitation" />
+  <meta property="og:image" content="https://va-wedding.cc/assets/og-preview.png" />
+  <meta property="og:image:secure_url" content="https://va-wedding.cc/assets/og-preview.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Mekhak & Yeva — Wedding Invitation" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Mekhak & Yeva — 23/08/2026" />
+  <meta name="twitter:description" content="Wedding Invitation" />
+  <meta name="twitter:image" content="https://va-wedding.cc/assets/og-preview.png" />
+
+  <style>
+    @font-face{
+      font-family:"Arian AMU Serif";
+      font-style:normal;font-weight:400;
+      src:url("/assets/fonts/ArianAMUSerif.woff2") format("woff2");
+      font-display:swap;
+    }
+    @font-face{
+      font-family:"Arm Hmks";
+      font-style:normal;font-weight:400;
+      src:url("/assets/fonts/ArmHmksLight-Bold.woff2") format("woff2");
+      font-display:swap;
+    }
+    @font-face{
+      font-family:"Arm Hmks";
+      font-style:normal;font-weight:700;
+      src:url("/assets/fonts/ArmHmksLight-ExtraBold.woff2") format("woff2");
+      font-display:swap;
+    }
+    @font-face{
+      font-family:"Pinyon Script";
+      font-style:normal;font-weight:400;
+      src:url("/assets/fonts/PinyonScript.woff2") format("woff2");
+      font-display:swap;
+    }
+    @font-face{
+      font-family:"Cormorant Garamond";
+      font-style:normal;font-weight:400;
+      src:url("/assets/fonts/CormorantGaramond.woff2") format("woff2");
+      font-display:swap;
+    }
+    @font-face{
+      font-family:"Cormorant Garamond";
+      font-style:italic;font-weight:400;
+      src:url("/assets/fonts/CormorantGaramondItalic.woff2") format("woff2");
+      font-display:swap;
+    }
+
+    :root{
+      --bg:#f6f1e4;             /* warm cream flat-lay background */
+      --card:#fbf7ec;           /* invitation card */
+      --sage:#79885b;           /* envelope + details card */
+      --sage-deep:#66754c;
+      --green-ink:#3f4e2e;      /* dark green text on cream */
+      --burgundy:#7b2d40;       /* script names, borders, oval */
+      --burgundy-deep:#5f2131;
+      --ink:#39352c;
+      --polaroid:#fdfbf4;
+    }
+
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      background:var(--bg);
+      color:var(--ink);
+      font-family:"Arm Hmks","Noto Serif Armenian",Georgia,serif;
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+      overflow-x:hidden;
+      line-height:1.5;
+    }
+    body.locked{overflow:hidden}
+    img{display:block;max-width:100%;height:auto}
+    a{color:inherit;text-decoration:none}
+    button{font:inherit}
+
+    .script{font-family:"Pinyon Script",cursive;font-weight:400}
+    .serif{font-family:"Cormorant Garamond",Georgia,serif}
+    .arm-serif{font-family:"Arian AMU Serif","Noto Serif Armenian",Georgia,serif}
+
+    /* ==================== INTRO — closed envelope ==================== */
+    .intro{
+      position:fixed;
+      inset:0;
+      z-index:60;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:30px;
+      background:var(--bg);
+      padding:26px;
+      transition:opacity 1s ease .15s;
+    }
+    .intro.done{opacity:0;pointer-events:none}
+    .intro-from,.intro-names,.intro-hint{transition:opacity .5s ease}
+    .intro.opening .intro-from,
+    .intro.opening .intro-names,
+    .intro.opening .intro-hint{opacity:0}
+    .intro-from{
+      margin:0;
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:clamp(15px, 2vw, 19px);
+      letter-spacing:0.06em;
+      color:var(--green-ink);
+    }
+    .intro-names{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(52px, 11vw, 92px);
+      line-height:1;
+      color:var(--green-ink);
+      text-align:center;
+      margin:-6px 0 4px;
+    }
+
+    .envelope{
+      position:relative;
+      width:min(360px, 84vw);
+      aspect-ratio:10 / 7;
+      border:0;
+      padding:0;
+      background:transparent;
+      cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      filter:drop-shadow(0 24px 28px rgba(57,53,44,.28));
+      transition:transform .3s ease;
+    }
+    .envelope:hover{transform:scale(1.02)}
+    .env-back,.env-front,.env-flap,.env-card{position:absolute;display:block}
+    .env-back{
+      inset:0;
+      background:linear-gradient(160deg, #7e8d60, #6f7e53);
+      border-radius:7px;
+      z-index:1;
+    }
+    .env-card{
+      left:6%;
+      right:6%;
+      bottom:4%;
+      height:90%;
+      background:var(--card);
+      border-radius:3px;
+      box-shadow:0 4px 14px rgba(0,0,0,.2);
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      padding-top:26px;
+      gap:6px;
+      color:var(--ink);
+      transition:transform .9s cubic-bezier(.2,.7,.2,1) .5s;
+    }
+    .env-card::after{
+      content:"";
+      position:absolute;
+      inset:7px;
+      border:1px solid rgba(123,45,64,.55);
+      border-radius:2px;
+      pointer-events:none;
+    }
+    .env-card .ec-invite{
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:11px;
+      color:var(--ink);
+      opacity:.8;
+    }
+    .env-card .ec-names{
+      font-family:"Pinyon Script",cursive;
+      font-size:30px;
+      line-height:1;
+      color:var(--burgundy);
+    }
+    .env-card .ec-date{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      font-size:13px;
+      letter-spacing:0.3em;
+      color:var(--ink);
+    }
+    .env-front{
+      inset:0;
+      background:linear-gradient(200deg, #83926b 0%, #75855a 55%, #6b7a51 100%);
+      clip-path:polygon(0 0, 50% 44%, 100% 0, 100% 100%, 0 100%);
+      border-radius:7px;
+      z-index:3;
+    }
+    .env-flap{
+      top:0;
+      left:0;
+      width:100%;
+      height:55%;
+      background:linear-gradient(180deg, #8a9971 0%, #75855a 90%);
+      clip-path:polygon(0 0, 100% 0, 50% 97%);
+      transform-origin:50% 0;
+      z-index:4;
+      transition:transform .65s cubic-bezier(.4,0,.2,1), z-index 0s .65s;
+      border-radius:7px 7px 0 0;
+    }
+    .envelope.open .env-flap{transform:rotateX(178deg);z-index:1}
+    .envelope.open .env-card{transform:translateY(-52%)}
+
+    .env-bow{
+      position:absolute;
+      top:20%;
+      left:50%;
+      transform:translateX(-50%);
+      width:min(150px, 40%);
+      z-index:6;
+      pointer-events:none;
+      filter:drop-shadow(0 4px 10px rgba(0,0,0,.18));
+      transition:opacity .4s ease, transform .4s ease;
+    }
+    .env-seal{
+      position:absolute;
+      top:46%;
+      left:50%;
+      width:64px;
+      height:74px;
+      margin-left:-32px;
+      z-index:5;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:radial-gradient(circle at 36% 30%, #8d3a50, var(--burgundy) 52%, var(--burgundy-deep) 100%);
+      border-radius:48% 52% 46% 54% / 52% 46% 54% 48%;
+      box-shadow:0 3px 8px rgba(0,0,0,.3), inset 0 0 0 4px rgba(255,255,255,.06), inset 0 2px 6px rgba(255,255,255,.18);
+      color:#f3e6dc;
+      font-family:"Pinyon Script",cursive;
+      font-size:24px;
+      transition:opacity .4s ease, transform .4s ease;
+    }
+    .envelope.open .env-seal,
+    .envelope.open .env-bow{opacity:0;transform:translateX(-50%) scale(.75)}
+    .envelope.open .env-seal{transform:scale(.75)}
+    .intro-hint{
+      margin:0;
+      font-weight:700;
+      font-size:clamp(13px, 1.6vw, 16px);
+      letter-spacing:0.28em;
+      color:var(--green-ink);
+      text-transform:uppercase;
+      animation:hintPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes hintPulse{
+      0%,100%{opacity:.55}
+      50%{opacity:1}
+    }
+
+    /* ==================== DANCE HERO ==================== */
+    .dance-hero{
+      position:relative;
+      height:100vh;
+      height:100svh;
+      overflow:hidden;
+      background:#1c2015;
+    }
+    .dance-hero .dh-photo{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      object-position:center 70%;
+    }
+    .dh-frame{
+      position:absolute;
+      top:4svh;
+      left:50%;
+      transform:translateX(-50%);
+      width:min(350px, 82vw);
+    }
+    .dh-frame .doily{
+      width:100%;
+      height:auto;
+      display:block;
+      filter:drop-shadow(0 10px 26px rgba(0,0,0,.3));
+    }
+    .dh-text{
+      position:absolute;
+      inset:17% 16% 19%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+      text-align:center;
+      color:var(--green-ink);
+    }
+    .dh-text .dh-names{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(36px, 7.8vw, 52px);
+      line-height:1.12;
+    }
+    .dh-text .dh-date,
+    .dh-text .dh-place{
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:clamp(14px, 2vw, 18px);
+      letter-spacing:.04em;
+    }
+    .dh-music{
+      position:absolute;
+      left:50%;
+      bottom:15svh;
+      transform:translateX(-50%);
+      width:98px;
+      height:98px;
+      border-radius:50%;
+      border:0;
+      background:rgba(28,28,22,.42);
+      backdrop-filter:blur(3px);
+      -webkit-backdrop-filter:blur(3px);
+      color:#fdfbf4;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:13px;
+    }
+    .dh-music .note{font-size:26px;font-style:normal;line-height:1}
+    .married-band{
+      background:linear-gradient(180deg, #722639, var(--burgundy-deep));
+      color:#f5ead9;
+      text-align:center;
+      padding:36px 20px 42px;
+    }
+    .married-band .script{
+      font-size:clamp(34px, 6.5vw, 52px);
+      line-height:1.1;
+    }
+
+    /* ==================== FLAT-LAY PAGE ==================== */
+    .lay{
+      max-width:640px;
+      margin:0 auto;
+      padding:56px 20px 90px;
+    }
+    .piece{position:relative}
+
+    /* ----- silver tray with photo ----- */
+    .tray-piece{
+      position:relative;
+      width:min(440px, 94%);
+      margin:0 auto 52px;
+    }
+    .tray-piece .tray{
+      width:100%;
+      display:block;
+      filter:drop-shadow(0 16px 26px rgba(57,53,44,.24));
+    }
+    .tray-photo{
+      position:absolute;
+      inset:13% 14% 15%;
+      border-radius:50%;
+      overflow:hidden;
+      box-shadow:inset 0 4px 16px rgba(0,0,0,.35);
+    }
+    .tray-photo img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+    }
+
+    /* ----- opened envelope (template element) ----- */
+    .open-envelope{
+      position:relative;
+      width:min(360px, 80%);
+      margin:0 auto;
+      z-index:1;
+    }
+    .open-envelope .oe-img{
+      width:100%;
+      display:block;
+      filter:drop-shadow(0 16px 26px rgba(57,53,44,.2));
+    }
+
+    /* ----- invitation card ----- */
+    .invite-card{
+      position:relative;
+      background:var(--card);
+      margin:-54px auto 0;
+      width:min(470px, 96%);
+      padding:56px 34px 48px;
+      text-align:center;
+      box-shadow:0 20px 36px rgba(57,53,44,.2);
+      z-index:2;
+    }
+    .invite-card::after{
+      content:"";
+      position:absolute;
+      inset:12px;
+      border:1px solid var(--burgundy);
+      outline:1px solid var(--burgundy);
+      outline-offset:3px;
+      pointer-events:none;
+      opacity:.85;
+    }
+    .invite-card .line-invite{
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:clamp(15px, 2vw, 18px);
+      color:var(--ink);
+      margin:0 0 8px;
+    }
+    .invite-card .big-names{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(46px, 9vw, 64px);
+      line-height:1.12;
+      color:var(--burgundy);
+      margin:6px 0 18px;
+    }
+    .invite-card .w-date{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      font-size:clamp(18px, 2.6vw, 23px);
+      letter-spacing:0.28em;
+      color:var(--burgundy-deep);
+      margin:0 0 14px;
+    }
+    .invite-card .w-place-venue{
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:15px;
+      margin:0 0 4px;
+    }
+    .invite-card .w-place{
+      font-size:14px;
+      letter-spacing:0.16em;
+      font-weight:700;
+      text-transform:uppercase;
+      margin:0;
+    }
+
+    /* ----- countdown ----- */
+    .countdown{
+      display:flex;
+      justify-content:center;
+      gap:clamp(18px, 5vw, 40px);
+      margin:40px auto 0;
+      color:var(--green-ink);
+    }
+    .cd-unit{text-align:center}
+    .cd-num{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      font-size:clamp(30px, 5vw, 42px);
+      line-height:1;
+    }
+    .cd-label{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      font-size:11px;
+      letter-spacing:0.24em;
+      margin-top:6px;
+    }
+
+    /* ----- polaroids ----- */
+    .polaroid{
+      background:var(--polaroid);
+      padding:10px 10px 42px;
+      box-shadow:0 16px 30px rgba(57,53,44,.24);
+      transform:rotate(var(--tilt, -3deg));
+    }
+    .polaroid img{width:100%;aspect-ratio:3/3.4;object-fit:cover}
+
+    .pol-a{
+      width:min(250px, 56%);
+      margin:-30px 0 0 2%;
+      --tilt:-5deg;
+      z-index:3;
+      position:relative;
+    }
+
+    /* ----- kindly respond oval + ring polaroid row ----- */
+    .respond-row{
+      position:relative;
+      margin-top:26px;
+      min-height:420px;
+    }
+    .oval{
+      position:absolute;
+      left:-2%;
+      top:30px;
+      width:min(330px, 74%);
+      aspect-ratio:0.86/1;
+      background:radial-gradient(circle at 42% 32%, #7f3247, var(--burgundy) 58%, var(--burgundy-deep) 100%);
+      border-radius:50%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      text-align:center;
+      color:#f5ead9;
+      transform:rotate(-4deg);
+      box-shadow:0 20px 34px rgba(57,53,44,.3);
+      cursor:pointer;
+      border:0;
+      z-index:2;
+      padding:26px;
+    }
+    .oval::before{
+      content:"";
+      position:absolute;
+      inset:10px;
+      border:1px solid rgba(245,234,217,.75);
+      border-radius:50%;
+      pointer-events:none;
+    }
+    .oval .oval-bow{
+      position:absolute;
+      top:-30px;
+      left:50%;
+      transform:translateX(-50%);
+      width:110px;
+      pointer-events:none;
+      filter:drop-shadow(0 3px 8px rgba(0,0,0,.22));
+    }
+    .oval .kr{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(36px, 7.4vw, 52px);
+      line-height:1.05;
+    }
+    .oval .kr-by{
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:14px;
+    }
+    .oval .kr-click{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      font-size:13px;
+      letter-spacing:0.26em;
+      font-weight:600;
+    }
+    .pol-b{
+      position:absolute;
+      right:-1%;
+      top:0;
+      width:min(240px, 52%);
+      --tilt:4deg;
+      z-index:1;
+    }
+
+    /* ----- florals (SVG) ----- */
+    .sprig{position:absolute;pointer-events:none;z-index:4}
+    .sprig-1{width:170px;right:-14px;top:-58px;transform:rotate(8deg)}
+    .sprig-2{width:150px;left:-18px;top:-48px;transform:scaleX(-1) rotate(6deg)}
+
+    /* ----- details card ----- */
+    .details-callout{
+      position:relative;
+      margin:60px auto 0;
+      width:min(430px, 94%);
+      background:linear-gradient(165deg, #7e8d60, #6f7e53);
+      color:#f5f0df;
+      text-align:center;
+      padding:46px 30px 40px;
+      box-shadow:0 20px 34px rgba(57,53,44,.26);
+      transform:rotate(1.6deg);
+      cursor:pointer;
+      border:0;
+      display:block;
+    }
+    .details-callout::after{
+      content:"";
+      position:absolute;
+      inset:10px;
+      border:1px solid rgba(245,240,223,.75);
+      outline:1px solid rgba(245,240,223,.5);
+      outline-offset:3px;
+      pointer-events:none;
+    }
+    .details-callout .dc-click{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      letter-spacing:0.3em;
+      font-size:13px;
+      font-weight:600;
+      display:block;
+      margin-bottom:6px;
+    }
+    .details-callout .dc-title{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(42px, 8vw, 58px);
+      line-height:1;
+    }
+
+    /* ----- details / timing section ----- */
+    .details-card{
+      position:relative;
+      background:var(--card);
+      margin:70px auto 0;
+      width:min(500px, 100%);
+      padding:52px 30px 44px;
+      text-align:center;
+      box-shadow:0 20px 36px rgba(57,53,44,.2);
+    }
+    .details-card::after{
+      content:"";
+      position:absolute;
+      inset:12px;
+      border:1px solid var(--burgundy);
+      outline:1px solid var(--burgundy);
+      outline-offset:3px;
+      pointer-events:none;
+      opacity:.85;
+    }
+    .details-card .dt-header{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(40px, 7vw, 54px);
+      color:var(--burgundy);
+      line-height:1;
+      margin:0 0 6px;
+    }
+    .details-card .dt-sub{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      letter-spacing:0.3em;
+      font-size:13px;
+      color:var(--green-ink);
+      margin:0 0 30px;
+      text-transform:uppercase;
+    }
+    .event{
+      padding:20px 6px;
+    }
+    .event + .event{border-top:1px solid rgba(123,45,64,.25)}
+    .event .ev-time{
+      font-family:"Cormorant Garamond",Georgia,serif;
+      font-size:32px;
+      letter-spacing:0.1em;
+      color:var(--burgundy);
+      line-height:1;
+    }
+    .event .ev-title{
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:0.08em;
+      font-size:15px;
+      margin-top:6px;
+    }
+    .event .ev-venue{
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:14px;
+      margin-top:6px;
+    }
+    .event .ev-addr{
+      font-size:13px;
+      opacity:.75;
+      margin-top:2px;
+    }
+    .event .map-link{
+      display:inline-block;
+      margin-top:10px;
+      padding:7px 20px;
+      background:var(--burgundy);
+      color:#f5ead9;
+      font-size:11px;
+      letter-spacing:0.22em;
+      border-radius:2px;
+      transition:opacity .2s;
+    }
+    .event .map-link:hover{opacity:.85}
+
+    /* ----- rsvp ----- */
+    .rsvp-card{
+      position:relative;
+      background:var(--card);
+      margin:70px auto 0;
+      width:min(500px, 100%);
+      padding:52px 32px 46px;
+      box-shadow:0 20px 36px rgba(57,53,44,.2);
+    }
+    .rsvp-card::after{
+      content:"";
+      position:absolute;
+      inset:12px;
+      border:1px solid var(--burgundy);
+      outline:1px solid var(--burgundy);
+      outline-offset:3px;
+      pointer-events:none;
+      opacity:.85;
+    }
+    .rsvp-card .rc-header{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(40px, 7vw, 54px);
+      color:var(--burgundy);
+      text-align:center;
+      line-height:1;
+      margin:0 0 18px;
+    }
+    .rsvp-card .ask{
+      font-size:14px;
+      line-height:1.7;
+      text-align:center;
+      margin:0 0 28px;
+    }
+    .rsvp-form{display:grid;gap:24px;text-align:left;position:relative;z-index:1}
+    .rsvp-form .field{display:grid;gap:8px;border:0;padding:0;margin:0}
+    .rsvp-form label,
+    .rsvp-form legend{font-size:14px;letter-spacing:0.03em;padding:0}
+    .rsvp-form input[type="text"],
+    .rsvp-form input[type="number"]{
+      width:100%;
+      background:transparent;
+      border:0;
+      border-bottom:1px solid #b3a68d;
+      padding:9px 2px;
+      font:inherit;
+      font-size:16px;
+      color:var(--ink);
+      border-radius:0;
+      outline:none;
+      transition:border-color .2s;
+    }
+    .rsvp-form input[type="text"]:focus,
+    .rsvp-form input[type="number"]:focus{border-bottom-color:var(--burgundy)}
+    .rsvp-form .choices{display:grid;gap:10px;margin-top:4px}
+    .rsvp-form .opt{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:14px;line-height:1.35}
+    .rsvp-form .opt input{
+      appearance:none;
+      -webkit-appearance:none;
+      width:18px;
+      height:18px;
+      border:1px solid #96835f;
+      background:transparent;
+      margin:0;
+      flex-shrink:0;
+      position:relative;
+      cursor:pointer;
+      transition:border-color .15s;
+    }
+    .rsvp-form .opt input[type="radio"]{border-radius:50%}
+    .rsvp-form .opt input:checked{border-color:var(--burgundy)}
+    .rsvp-form .opt input[type="radio"]:checked::after{
+      content:"";
+      position:absolute;
+      inset:3px;
+      background:var(--burgundy);
+      border-radius:50%;
+    }
+    .rsvp-form .opt input[type="checkbox"]:checked::after{
+      content:"";
+      position:absolute;
+      inset:2px 1px;
+      background:var(--burgundy);
+      clip-path:polygon(14% 50%, 0 64%, 38% 100%, 100% 22%, 84% 8%, 36% 70%);
+    }
+    .rsvp-form .submit-btn{
+      justify-self:center;
+      background:var(--burgundy);
+      color:#f5ead9;
+      border:0;
+      border-radius:2px;
+      padding:14px 42px;
+      font-size:13px;
+      letter-spacing:0.22em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition:opacity .2s;
+      margin-top:6px;
+    }
+    .rsvp-form .submit-btn:hover{opacity:.88}
+    .rsvp-form .submit-btn:disabled{opacity:.5;cursor:not-allowed}
+    .rsvp-form .form-msg{
+      margin:0;
+      padding:12px 14px;
+      font-size:13px;
+      border-left:3px solid var(--burgundy);
+      background:rgba(123,45,64,.07);
+    }
+    .rsvp-form .form-msg.error{border-left-color:#8a2626}
+    .rsvp-form .form-msg.success{border-left-color:#2f6a3a}
+
+    /* ----- closing ----- */
+    .closing{
+      margin-top:80px;
+      text-align:center;
+      position:relative;
+    }
+    .pol-c{
+      width:min(270px, 62%);
+      margin:0 auto 34px;
+      --tilt:2.5deg;
+    }
+    .closing .cl-script{
+      font-family:"Pinyon Script",cursive;
+      font-size:clamp(40px, 8vw, 58px);
+      color:var(--burgundy);
+      line-height:1.1;
+      margin:0 0 10px;
+    }
+    .closing .cl-caps{
+      font-weight:700;
+      letter-spacing:0.26em;
+      text-transform:uppercase;
+      font-size:15px;
+      color:var(--green-ink);
+      margin:0;
+    }
+
+    /* ----- reveal ----- */
+    .reveal{
+      opacity:0;
+      transform:translate3d(0, 30px, 0) rotate(var(--tilt, 0deg));
+      transition:opacity .9s ease-out, transform .9s cubic-bezier(.2,.7,.2,1);
+      will-change:opacity, transform;
+    }
+    .reveal.in{
+      opacity:1;
+      transform:translate3d(0, 0, 0) rotate(var(--tilt, 0deg));
+    }
+
+    @media (max-width: 520px){
+      .respond-row{min-height:0;display:grid;gap:26px;justify-items:center}
+      .oval{position:relative;left:auto;top:auto;width:min(320px, 92%)}
+      .pol-b{position:relative;right:auto;top:auto;width:min(250px, 70%)}
+      .pol-a{width:min(230px, 64%);margin-left:0}
+      .sprig-1{width:130px;right:-8px;top:-46px}
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .reveal{opacity:1 !important;transform:rotate(var(--tilt, 0deg)) !important;transition:none !important}
+      .intro,.env-flap,.env-card,.env-seal,.env-bow{transition:none !important}
+      .intro-hint{animation:none}
+    }
+  </style>
+</head>
+<body class="locked">
+
+  <!-- ==================== ENVELOPE INTRO ==================== -->
+  <div class="intro" id="intro">
+    <p class="intro-from">Փոքրիկ նամակ Ձեզ համար՝</p>
+    <div class="intro-names">Mekhak &amp; Yeva</div>
+    <button class="envelope" id="envelope" aria-label="Բացել հրավերը">
+      <span class="env-back"></span>
+      <span class="env-card">
+        <span class="ec-invite">Հրավիրում ենք Ձեզ</span>
+        <span class="ec-names">Mekhak &amp; Yeva</span>
+        <span class="ec-date">23·08·2026</span>
+      </span>
+      <span class="env-front"></span>
+      <span class="env-flap"></span>
+      <img class="env-bow" src="/assets/elements/el6.png" alt="" />
+      <span class="env-seal">M·Y</span>
+    </button>
+    <p class="intro-hint">Սեղմեք ծրարը՝ բացելու համար</p>
+  </div>
+
+  <!-- ==================== DANCE HERO ==================== -->
+  <section class="dance-hero">
+    <img class="dh-photo" src="/assets/dance.jpg" alt="" />
+    <div class="dh-frame">
+      <img class="doily" src="/assets/elements/el1.png" alt="" />
+      <div class="dh-text">
+        <div class="dh-names">Mekhak<br/>&amp; Yeva</div>
+        <div class="dh-date">23 Օգոստոսի, 2026</div>
+        <div class="dh-place">Երևան, Հայաստան</div>
+      </div>
+    </div>
+    <button class="dh-music" id="music-btn" hidden>
+      <span class="note">&#9834;</span>
+      <span id="music-label">tap to play</span>
+    </button>
+    <audio id="music" src="/assets/song.mp3" preload="metadata" loop></audio>
+  </section>
+  <div class="married-band">
+    <span class="script">We Are Getting Married</span>
+  </div>
+
+  <!-- ==================== FLAT-LAY PAGE ==================== -->
+  <main class="lay" id="page">
+
+    <!-- silver tray with photo -->
+    <div class="tray-piece reveal piece">
+      <img class="tray" src="/assets/elements/el8.png" alt="" />
+      <div class="tray-photo"><img src="/assets/gallery-1.jpg" alt="" /></div>
+    </div>
+
+    <!-- opened envelope (template element) -->
+    <div class="open-envelope reveal piece">
+      <img class="oe-img" src="/assets/elements/el4.png" alt="" />
+    </div>
+
+    <!-- invitation card + florals -->
+    <div class="piece invite-wrap" style="position:relative">
+      <svg class="sprig sprig-1" viewBox="0 0 170 150" aria-hidden="true">
+        <g fill="none" stroke="#5d6b45" stroke-width="2.4" stroke-linecap="round">
+          <path d="M28 138 C48 108, 66 80, 96 52"/>
+          <path d="M60 100 C50 86, 48 74, 54 60"/>
+          <path d="M84 66 C96 62, 106 52, 108 40"/>
+        </g>
+        <g fill="#7b2d40">
+          <path d="M96 52 C84 34, 96 12, 116 14 C138 16, 142 42, 124 54 C114 61, 102 60, 96 52 Z"/>
+          <path d="M120 30 C119 22, 124 16, 130 15 C130 22, 127 28, 120 30 Z" fill="#5f2131"/>
+        </g>
+        <g fill="#f3eee1" stroke="#d9d0b8" stroke-width="1">
+          <path d="M54 60 C44 46, 50 30, 62 28 C64 40, 62 52, 54 60 Z"/>
+        </g>
+        <g fill="#9db07c">
+          <circle cx="40" cy="120" r="7"/><circle cx="52" cy="112" r="6"/><circle cx="44" cy="106" r="6"/><circle cx="33" cy="110" r="6"/>
+        </g>
+        <g fill="#8a3049">
+          <circle cx="66" cy="92" r="6"/><circle cx="76" cy="86" r="5"/><circle cx="68" cy="80" r="5"/><circle cx="58" cy="86" r="5"/>
+        </g>
+      </svg>
+
+      <div class="invite-card reveal">
+        <p class="line-invite">Հրավիրում ենք Ձեզ ներկա գտնվելու մեր հարսանիքին</p>
+        <div class="big-names">Mekhak &amp;<br/>Yeva</div>
+        <p class="w-date">23 · 08 · 2026</p>
+        <p class="w-place-venue">«Wine Corner» ռեստորանային համալիր</p>
+        <p class="w-place">ք. Աշտարակ, Հայաստան</p>
+      </div>
+
+      <div class="polaroid pol-a reveal"><img src="/assets/hero.jpg" alt="" /></div>
+    </div>
+
+    <!-- countdown -->
+    <div class="countdown reveal" id="countdown" aria-label="Countdown to the wedding">
+      <div class="cd-unit"><div class="cd-num" id="cd-days">—</div><div class="cd-label">DAYS</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-hours">—</div><div class="cd-label">HOURS</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-mins">—</div><div class="cd-label">MINUTES</div></div>
+      <div class="cd-unit"><div class="cd-num" id="cd-secs">—</div><div class="cd-label">SECONDS</div></div>
+    </div>
+
+    <!-- kindly respond + ring polaroid -->
+    <div class="respond-row piece">
+      <div class="polaroid pol-b reveal"><img src="/assets/opening.jpg" alt="" /></div>
+      <button class="oval reveal" data-scroll="#rsvp">
+        <img class="oval-bow" src="/assets/elements/el6.png" alt="" />
+        <span class="kr">Kindly<br/>Respond</span>
+        <span class="kr-by">մինչև օգոստոսի 10</span>
+        <span class="kr-click">CLICK TO RSVP</span>
+      </button>
+    </div>
+
+    <!-- details callout -->
+    <div class="piece" style="position:relative">
+      <svg class="sprig sprig-2" viewBox="0 0 170 150" aria-hidden="true">
+        <g fill="none" stroke="#5d6b45" stroke-width="2.4" stroke-linecap="round">
+          <path d="M28 138 C48 108, 66 80, 96 52"/>
+          <path d="M60 100 C50 86, 48 74, 54 60"/>
+        </g>
+        <g fill="#7b2d40">
+          <path d="M96 52 C84 34, 96 12, 116 14 C138 16, 142 42, 124 54 C114 61, 102 60, 96 52 Z"/>
+        </g>
+        <g fill="#9db07c">
+          <circle cx="40" cy="120" r="7"/><circle cx="52" cy="112" r="6"/><circle cx="44" cy="106" r="6"/>
+        </g>
+        <g fill="#8a3049">
+          <circle cx="66" cy="92" r="6"/><circle cx="76" cy="86" r="5"/><circle cx="68" cy="80" r="5"/>
+        </g>
+      </svg>
+      <button class="details-callout reveal" data-scroll="#details">
+        <span class="dc-click">ՕՐՎԱ ԾՐԱԳԻՐԸ</span>
+        <span class="dc-title">The Details</span>
+      </button>
+    </div>
+
+    <!-- details / timing -->
+    <section class="details-card reveal" id="details">
+      <h2 class="dt-header">The Details</h2>
+      <p class="dt-sub">Օրվա ծրագիրը</p>
+
+      <div class="event">
+        <div class="ev-time">11:30</div>
+        <div class="ev-title">Փեսայի Տուն</div>
+        <div class="ev-addr">ք. Երևան, Հրաչյա Քոչար 22</div>
+        <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=Hrachya+Kochar+22+Yerevan" target="_blank" rel="noopener">քարտեզ</a>
+      </div>
+
+      <div class="event">
+        <div class="ev-time">13:00</div>
+        <div class="ev-title">Հարսի Տուն</div>
+        <div class="ev-addr">ք. Երևան, Էլեն Բյուզանդ 1/1</div>
+        <a class="map-link" href="https://maps.app.goo.gl/sZqsb4ArXMxcuPGE7" target="_blank" rel="noopener">քարտեզ</a>
+      </div>
+
+      <div class="event">
+        <div class="ev-time">15:00</div>
+        <div class="ev-title">Պսակադրություն</div>
+        <div class="ev-venue">Սուրբ Զորավոր Աստվածածին Եկեղեցի</div>
+        <div class="ev-addr">ք. Երևան, Ղազար Փարպեցի 9</div>
+        <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=Zoravor+Surb+Astvatsatsin+Church+Yerevan" target="_blank" rel="noopener">քարտեզ</a>
+      </div>
+
+      <div class="event">
+        <div class="ev-time">17:30</div>
+        <div class="ev-title">Հարսանեկան Խնջույք</div>
+        <div class="ev-venue">«Wine Corner» ռեստորանային համալիր</div>
+        <div class="ev-addr">ք. Աշտարակ</div>
+        <a class="map-link" href="https://www.google.com/maps/place/Wine+Corner/@40.2949256,44.3619037,17z/data=!3m1!4b1!4m6!3m5!1s0x406a9bc168490c33:0x1a544d65a7b67a0e!8m2!3d40.2949256!4d44.3644786!16s%2Fg%2F11rqxsmkz5?entry=ttu&g_ep=EgoyMDI2MDcxMy4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener">քարտեզ</a>
+      </div>
+    </section>
+
+    <!-- rsvp -->
+    <section class="rsvp-card reveal" id="rsvp">
+      <h2 class="rc-header">Kindly Respond</h2>
+      <p class="ask">Խնդրում ենք հաստատել Ձեր մասնակցությունը՝ լրացնելով այս հարցաշարը մինչև օգոստոսի 10։</p>
+      <form id="rsvp-form" class="rsvp-form" novalidate>
+        <div class="field">
+          <label for="rsvp-name">Անուն, ազգանուն</label>
+          <input id="rsvp-name" name="name" type="text" required autocomplete="name" />
+        </div>
+
+        <div class="field">
+          <label for="rsvp-guests">Հյուրերի քանակ</label>
+          <input id="rsvp-guests" name="guests" type="number" min="1" max="20" required inputmode="numeric" />
+        </div>
+
+        <fieldset class="field">
+          <legend>Կմասնակցե՞ք մեր հարսանիքին։</legend>
+          <div class="choices">
+            <label class="opt">
+              <input type="radio" name="attending" value="Այո, սիրով կմասնակցեմ։" required />
+              <span>Այո, սիրով կմասնակցեմ։</span>
+            </label>
+            <label class="opt">
+              <input type="radio" name="attending" value="Ցավոք, չեմ կարող մասնակցել" />
+              <span>Ցավոք, չեմ կարող մասնակցել</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="field">
+          <legend>Ո՞ր միջոցառմանն եք մասնակցելու։</legend>
+          <div class="choices">
+            <label class="opt">
+              <input type="checkbox" name="events" value="Փեսայի/հարսի տուն" />
+              <span>Փեսայի/հարսի տուն</span>
+            </label>
+            <label class="opt">
+              <input type="checkbox" name="events" value="Պսակադրության արարողություն" />
+              <span>Պսակադրության արարողություն</span>
+            </label>
+            <label class="opt">
+              <input type="checkbox" name="events" value="Հարսանեկան խնջույք" />
+              <span>Հարսանեկան խնջույք</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="submit-btn">Հաստատել</button>
+        <p class="form-msg" hidden></p>
+      </form>
+    </section>
+
+    <!-- closing -->
+    <div class="closing">
+      <div class="polaroid pol-c reveal"><img src="/assets/gallery-2.jpg" alt="" /></div>
+      <p class="cl-script reveal">With all our love,<br/>Mekhak &amp; Yeva</p>
+      <p class="cl-caps reveal">Սիրով Կսպասենք</p>
+    </div>
+
+  </main>
+
+  <script>
+    /* Envelope intro: click to open, then reveal the page */
+    (function(){
+      var intro = document.getElementById('intro');
+      var envelope = document.getElementById('envelope');
+      if(!intro || !envelope) return;
+      var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      envelope.addEventListener('click', function(){
+        if(envelope.classList.contains('open')) return;
+        envelope.classList.add('open');
+        intro.classList.add('opening');
+        var wait = reduced ? 150 : 1600;
+        setTimeout(function(){
+          intro.classList.add('done');
+          document.body.classList.remove('locked');
+          setTimeout(function(){ intro.remove(); }, 1300);
+        }, wait);
+      });
+    })();
+  </script>
+  <script>
+    /* Music: button appears only when assets/song.mp3 exists */
+    (function(){
+      var audio = document.getElementById('music');
+      var btn = document.getElementById('music-btn');
+      var label = document.getElementById('music-label');
+      if(!audio || !btn) return;
+      audio.addEventListener('loadedmetadata', function(){ btn.hidden = false; });
+      audio.addEventListener('error', function(){ btn.hidden = true; });
+      btn.addEventListener('click', function(){
+        if(audio.paused){
+          audio.play();
+          label.textContent = 'pause';
+        } else {
+          audio.pause();
+          label.textContent = 'tap to play';
+        }
+      });
+    })();
+  </script>
+  <script>
+    /* Countdown to the wedding day */
+    (function(){
+      var target = new Date('2026-08-23T11:30:00+04:00').getTime();
+      var elDays = document.getElementById('cd-days');
+      var elHours = document.getElementById('cd-hours');
+      var elMins = document.getElementById('cd-mins');
+      var elSecs = document.getElementById('cd-secs');
+      if(!elDays) return;
+      function tick(){
+        var diff = Math.max(0, target - Date.now());
+        var s = Math.floor(diff / 1000);
+        elDays.textContent = Math.floor(s / 86400);
+        elHours.textContent = String(Math.floor(s % 86400 / 3600)).padStart(2, '0');
+        elMins.textContent = String(Math.floor(s % 3600 / 60)).padStart(2, '0');
+        elSecs.textContent = String(s % 60).padStart(2, '0');
+      }
+      tick();
+      setInterval(tick, 1000);
+    })();
+  </script>
+  <script>
+    /* Smooth-scroll buttons (Kindly Respond → form, The Details → schedule) */
+    (function(){
+      document.querySelectorAll('[data-scroll]').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var target = document.querySelector(btn.getAttribute('data-scroll'));
+          if(target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    })();
+  </script>
+  <script>
+    /* RSVP form submission → Google Apps Script Web App */
+    (function(){
+      var ENDPOINT = 'https://script.google.com/macros/s/AKfycbwHnxOPog1M03xvFbR3H0c1PBy1sTruJcy90JhNc7ogs-52iIbm6Mk2advodrmRgqAxYw/exec';
+
+      var form = document.getElementById('rsvp-form');
+      if(!form) return;
+      var msg = form.querySelector('.form-msg');
+      var btn = form.querySelector('.submit-btn');
+
+      function showMsg(text, kind){
+        msg.hidden = false;
+        msg.textContent = text;
+        msg.className = 'form-msg' + (kind ? ' ' + kind : '');
+      }
+
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        msg.hidden = true;
+
+        if(!form.checkValidity()){
+          showMsg('Խնդրում ենք լրացնել պարտադիր դաշտերը։', 'error');
+          form.reportValidity();
+          return;
+        }
+        var events = form.querySelectorAll('input[name="events"]:checked');
+        if(events.length === 0){
+          showMsg('Խնդրում ենք ընտրել առնվազն մեկ միջոցառում։', 'error');
+          return;
+        }
+
+        var fd = new FormData(form);
+        var payload = {
+          timestamp: new Date().toISOString(),
+          name: fd.get('name'),
+          guests: fd.get('guests'),
+          attending: fd.get('attending'),
+          events: fd.getAll('events').join(', ')
+        };
+
+        btn.disabled = true;
+        btn.textContent = 'Ուղարկվում է...';
+
+        if(ENDPOINT && ENDPOINT.indexOf('http') === 0){
+          fetch(ENDPOINT, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {'Content-Type': 'text/plain;charset=utf-8'},
+            body: JSON.stringify(payload)
+          }).then(function(){
+            showMsg('Շնորհակալություն։ Ձեր պատասխանը գրանցվեց։', 'success');
+            form.reset();
+            btn.textContent = 'Հաստատված';
+          }).catch(function(){
+            showMsg('Տեղի ունեցավ սխալ։ Խնդրում ենք կրկին փորձել։', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Հաստատել';
+          });
+        } else {
+          console.log('RSVP submission (endpoint not set):', payload);
+          showMsg('Շնորհակալություն։ Ձեր պատասխանը գրանցվեց։', 'success');
+          form.reset();
+          btn.textContent = 'Հաստատված';
+        }
+      });
+    })();
+  </script>
+  <script>
+    /* Reveal-on-scroll using IntersectionObserver */
+    (function(){
+      var els = document.querySelectorAll('.reveal');
+      if(!('IntersectionObserver' in window)){
+        els.forEach(function(el){ el.classList.add('in'); });
+        return;
+      }
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if(en.isIntersecting){
+            en.target.classList.add('in');
+            io.unobserve(en.target);
+          }
+        });
+      }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+      els.forEach(function(el){ io.observe(el); });
+    })();
+  </script>
+</body>
+</html>
