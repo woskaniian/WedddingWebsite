@@ -8,11 +8,11 @@
   <link rel="icon" type="image/png" href="../assets/favicon.png" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://m-and-y.win/our-day/" />
+  <meta property="og:url" content="https://yvoskanyann.github.io/WedddingWebsite/our-day/" />
   <meta property="og:title" content="Mekhak & Yeva — 23/08/2026" />
   <meta property="og:description" content="Wedding Invitation" />
-  <meta property="og:image" content="https://m-and-y.win/assets/og-preview.png" />
-  <meta property="og:image:secure_url" content="https://m-and-y.win/assets/og-preview.png" />
+  <meta property="og:image" content="https://yvoskanyann.github.io/WedddingWebsite/assets/og-preview.png" />
+  <meta property="og:image:secure_url" content="https://yvoskanyann.github.io/WedddingWebsite/assets/og-preview.png" />
   <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -20,7 +20,7 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Mekhak & Yeva — 23/08/2026" />
   <meta name="twitter:description" content="Wedding Invitation" />
-  <meta name="twitter:image" content="https://m-and-y.win/assets/og-preview.png" />
+  <meta name="twitter:image" content="https://yvoskanyann.github.io/WedddingWebsite/assets/og-preview.png" />
 
   <style>
     @font-face{
@@ -1070,7 +1070,7 @@
     }
   </style>
 </head>
-<body class="locked">
+<body>
 
   <!-- ==================== LANGUAGE SWITCHER ==================== -->
   <div class="lang-switch" role="group" aria-label="Language">
@@ -1080,7 +1080,7 @@
   </div>
 
   <!-- ==================== ENVELOPE INTRO ==================== -->
-  <div class="intro" id="intro">
+  <div class="intro done" id="intro" style="display:none">
     <p class="intro-from" data-i18n="introFrom">Փոքրիկ նամակ Ձեզ համար՝</p>
     <div class="intro-names">Mekhak &amp; Yeva</div>
     <div class="env-frame">
@@ -1105,7 +1105,7 @@
   </div>
 
   <!-- ==================== 1. HERO ==================== -->
-  <section class="hero">
+  <section class="hero" style="display:none">
     <div class="hero-stage">
       <img class="hero-photo" src="../assets/hero0.jpg" alt="" />
       <div class="lace-frame">
@@ -1126,10 +1126,10 @@
   </section>
 
   <!-- ==================== 2. BAND + COUNTDOWN ==================== -->
-  <div class="band">
+  <div class="band" style="display:none">
     <span class="script" data-i18n="band">We Are Getting Married</span><img class="band-sparkle" src="../assets/sparkle-web.png" alt="" />
   </div>
-  <div class="countdown" id="countdown" aria-label="Countdown to the wedding">
+  <div class="countdown" style="display:none" id="countdown" aria-label="Countdown to the wedding">
     <div class="cd-unit"><div class="cd-num" id="cd-days">—</div><div class="cd-label" data-i18n="cdDays">DAYS</div></div>
     <div class="cd-unit"><div class="cd-num" id="cd-hours">—</div><div class="cd-label" data-i18n="cdHours">HOURS</div></div>
     <div class="cd-unit"><div class="cd-num" id="cd-mins">—</div><div class="cd-label" data-i18n="cdMinutes">MINUTES</div></div>
@@ -1137,7 +1137,7 @@
   </div>
 
   <!-- ==================== 3. TRAY + STORY ==================== -->
-  <section class="story-section">
+  <section class="story-section" style="display:none">
     <div class="frame-solo reveal">
       <figure class="pframe pframe--round">
         <div class="pf-photo"><img src="../assets/hero.jpg" alt="Mekhak &amp; Yeva" /></div>
@@ -1167,7 +1167,7 @@
   -->
 
   <!-- lace divider line on the seam between story and details (4 small copies in sequence) -->
-  <div class="seam-lace">
+  <div class="seam-lace" style="display:none">
     <img src="../assets/lace-line-web.png" alt="" />
     <img src="../assets/lace-line-web.png" alt="" />
     <img src="../assets/lace-line-web.png" alt="" />
@@ -1175,7 +1175,7 @@
   </div>
 
   <!-- ==================== 4. DETAILS ==================== -->
-  <section class="details-section">
+  <section class="details-section" style="display:none">
   <div class="cards-wrap">
     <div class="tray-collage reveal">
       <img class="tray" src="../assets/elements/el8.png" alt="" />
@@ -1223,7 +1223,7 @@
   </section>
 
   <!-- ==================== 4. COLLAGE / RSVP CALLOUT ==================== -->
-  <section class="collage-section">
+  <section class="collage-section" style="display:none">
     <img class="collage-bg" src="../assets/photos.jpg" alt="" />
     <div class="collage-inner">
       <div class="collage-pol cp-0 reveal"><img src="../assets/photo1-web.jpg" alt="" /></div>
@@ -1591,5 +1591,5 @@
       els.forEach(function(el){ io.observe(el); });
     })();
   </script>
-</body>
+<script>document.querySelectorAll(".reveal").forEach(e=>e.classList.add("in"));</script></body>
 </html>
