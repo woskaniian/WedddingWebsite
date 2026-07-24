@@ -606,10 +606,11 @@
     }
     .story-text p{margin:0 0 1.1em}
     .signoff{
-      font-family:"Caveat",cursive;
-      font-size:clamp(26px, 4.6vw, 34px);
-      line-height:1.25;
-      margin-top:10px;
+      font-family:"Arian AMU Serif",Georgia,serif;
+      font-style:italic;
+      font-size:clamp(24px, 4.4vw, 32px);
+      line-height:1.5;
+      margin-top:15px;
       color:var(--cream-text);
     }
 
@@ -668,8 +669,8 @@
     }
     .plaque .kr{
       font-family:"Pinyon Script",cursive;
-      font-size:clamp(34px, 7vw, 44px);
-      line-height:1.05;
+      font-size:clamp(18px, 3.2vw, 23px);
+      line-height:1.28;
     }
     .plaque .kr-by{
       font-family:"Arian AMU Serif",Georgia,serif;
@@ -697,11 +698,15 @@
       font-style:italic;
     }
     html[lang="hy"] .plaque .kr,
+    html[lang="en"] .plaque .kr,
     html[lang="ru"] .plaque .kr{
       font-size:clamp(18px, 3.2vw, 23px);
       line-height:1.28;
     }
+    /* English CTA text is shorter, so give the card extra height to match hy/ru */
+    html[lang="en"] .collage-section .plaque{padding-top:22px; padding-bottom:31px}
     html[lang="hy"] .cream-card .card-header,
+    html[lang="en"] .cream-card .card-header,
     html[lang="ru"] .cream-card .card-header{
       font-size:clamp(22px, 4.6vw, 30px);
       line-height:1.15;
@@ -965,7 +970,19 @@
     /* ==================== 8. FOOTER ==================== */
     .footer{
       text-align:center;
-      padding:70px 22px 60px;
+      padding:18px 22px 44px;
+    }
+    .mono-sparkle{
+      display:inline-block;
+      height:0.5em;
+      width:auto;
+      vertical-align:middle;
+      position:relative;
+      top:-0.06em;
+      margin:0.15em 0.06em 0.2em 0.26em;
+      rotate: +15deg;
+      transform: rotate(-4deg);
+      filter:drop-shadow(0 2px 5px rgba(0,0,0,.4));
     }
     .footer .monogram{
       font-family:"Pinyon Script",cursive;
@@ -998,26 +1015,29 @@
       transform:translate3d(0, 0, 0);
     }
 
-    /* phones: keep the scattered web arrangement, just scaled down */
+    /* phones: scattered collage — small photos ON TOP, CTA card behind, gentle corner overlaps */
     @media (max-width: 600px){
       .story-section{padding-top:40px}
-      .collage-inner{min-height:122vw; max-width:520px}
+      .collage-section{overflow:visible}
+      .collage-inner{min-height:118vw; max-width:520px; overflow:visible}
       .collage-pol{
         position:absolute;
+        z-index:20;
         padding:4px 4px 12px;
-        box-shadow:0 8px 15px rgba(0,0,0,.32);
+        box-shadow:0 8px 15px rgba(0,0,0,.35);
       }
-      .cp-0{top:1%; left:1%; width:43%; transform:rotate(-4deg); z-index:1}
-      .cp-1{top:50%; left:5%; width:41%; transform:rotate(-5deg); z-index:3}
-      .cp-2{top:57%; right:0%; width:45%; transform:rotate(3deg); z-index:3}
+      .cp-0{top:7%;  left:4%;  width:33%; transform:rotate(-4deg)}
+      .cp-1{top:52%; left:2%;  width:32%; transform:rotate(-5deg)}
+      .cp-2{top:48%; right:-2%; width:25%; transform:rotate(3deg)}
       .collage-section .plaque{
         position:absolute;
-        top:31%; left:49%;
+        z-index:10;
+        top:30%; left:50%;
         transform:translateX(-50%) rotate(-1deg);
-        width:72%; max-width:none; margin:0;
-        padding:16px 16px 14px;
+        width:66%; max-width:none; margin:0;
+        padding:16px 16px 22px;
       }
-      html .collage-section .plaque .kr{font-size:15px; line-height:1.22}
+      html .collage-section .plaque .kr{font-size:14px; line-height:1.22}
       .collage-section .plaque .kr-by{font-size:10px; margin-top:4px}
       .collage-section .plaque .kr-click{font-size:8px; letter-spacing:.1em; margin-top:4px}
     }
@@ -1274,7 +1294,7 @@
 
   <!-- ==================== 8. FOOTER ==================== -->
   <footer class="footer">
-    <p class="monogram"><span>M</span><span>Y</span></p>
+    <p class="monogram"><span>M</span><img class="mono-sparkle" src="../assets/sparkle-web.png" alt="" /><span>Y</span></p>
     <p class="signoff"><span data-i18n="signoff">With all our love,</span><br/><span data-i18n="names">Mekhak &amp; Yeva</span></p>
   </footer>
 
