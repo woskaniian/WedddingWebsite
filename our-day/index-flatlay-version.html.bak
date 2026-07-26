@@ -980,7 +980,7 @@
       <p class="dt-sub">Օրվա ծրագիրը</p>
 
       <div class="event">
-        <div class="ev-time">11:30</div>
+        <div class="ev-time">11:00</div>
         <div class="ev-title">Փեսայի Տուն</div>
         <div class="ev-addr">ք. Երևան, Հրաչյա Քոչար 22</div>
         <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=Hrachya+Kochar+22+Yerevan" target="_blank" rel="noopener">քարտեզ</a>
@@ -1114,7 +1114,7 @@
   <script>
     /* Countdown to the wedding day */
     (function(){
-      var target = new Date('2026-08-23T11:30:00+04:00').getTime();
+      var target = new Date('2026-08-23T11:00:00+04:00').getTime();
       var elDays = document.getElementById('cd-days');
       var elHours = document.getElementById('cd-hours');
       var elMins = document.getElementById('cd-mins');

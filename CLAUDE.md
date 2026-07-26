@@ -68,7 +68,7 @@ Fonts: Pinyon Script (script headers/names), Cormorant Garamond + italic, Caveat
 sign-offs), Arian AMU Serif + Arm Hmks (Armenian). Script headers stay English by design.
 **Trilingual**: `data-i18n` attributes + inline `I18N` dictionary (hy/en/ru) + fixed switcher pill;
 RSVP submit VALUES stay Armenian so the Google Sheet is consistent; dynamic form strings go
-through `window.__t()`. Countdown ticks to `2026-08-23T11:30:00+04:00`. Music button hidden until
+through `window.__t()`. Countdown ticks to `2026-08-23T11:00:00+04:00`. Music button hidden until
 `assets/song.mp3` exists. Prior designs: `our-day/index-parallax-version.html.bak`,
 `our-day/index-flatlay-version.html.bak` (untracked).
 

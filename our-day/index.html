@@ -414,28 +414,27 @@
     }
     .music-btn[hidden]{display:none}
     .music-btn{
-      position:absolute;
-      right:6%;
-      bottom:4%;
-      width:98px;
-      height:98px;
+      position:fixed;
+      left:14px;
+      top:14px;
+      z-index:80;
+      width:40px;
+      height:40px;
       border-radius:50%;
       border:0;
       background:rgba(28,24,20,.45);
-      backdrop-filter:blur(3px);
-      -webkit-backdrop-filter:blur(3px);
+      backdrop-filter:blur(4px);
+      -webkit-backdrop-filter:blur(4px);
       color:#fdfbf4;
       cursor:pointer;
       display:flex;
-      flex-direction:column;
       align-items:center;
       justify-content:center;
-      gap:4px;
-      font-family:"Arian AMU Serif",Georgia,serif;
-      font-style:italic;
-      font-size:13px;
+      transition:background .2s, opacity .2s;
     }
-    .music-btn .note{font-size:26px;font-style:normal;line-height:1}
+    .music-btn:hover{background:rgba(28,24,20,.62)}
+    .music-btn.muted{opacity:.72}
+    .music-btn .note{font-size:20px;line-height:1}
 
     /* ==================== 2. BAND ==================== */
     .band{
@@ -1044,12 +1043,12 @@
 
     /* phones: shrink the whole details block uniformly so it fits and the lace isn't pressed */
     @media (max-width: 600px){
-      .details-section .cards-wrap{max-width:none; padding:44px 8px 40px}
+      .details-section .cards-wrap{max-width:none; padding:44px 20px 40px}
       #details{
         margin-top:-16px;
-        padding:16px 12px 20px;
-        border-width:22px;
-        border-image:url("../assets/back-web.png") 138 fill / 22px / 0 stretch;
+        border:0;
+        padding:78px 21% 74px;
+        background:url("../assets/lace-for-phone-web.png") center/100% 100% no-repeat;
       }
       #details .event{padding:7px 4px}
       #details .card-sub{font-size:11px; margin:0 0 8px}
@@ -1117,11 +1116,10 @@
           <div class="ln-place" data-i18n="heroPlace">Երևան, Հայաստան</div>
         </div>
       </div>
-      <button class="music-btn" id="music-btn" hidden>
-        <span class="note">♪</span>
-        <span id="music-label">tap to play</span>
+      <button class="music-btn" id="music-btn" hidden aria-label="Mute music">
+        <span class="note" id="music-note">🔊</span>
       </button>
-      <audio id="music" src="../assets/song.mp3" preload="metadata" loop></audio>
+      <audio id="music" src="../assets/soundreality-nature-forest-sound-537925.mp3" preload="auto" loop></audio>
     </div>
   </section>
 
@@ -1189,7 +1187,7 @@
       <p class="card-sub" data-i18n="detailsSub">Օրվա ծրագիրը</p>
 
       <div class="event">
-        <div class="ev-time">11:30</div>
+        <div class="ev-time">11:00</div>
         <div class="ev-title" data-i18n="ev1Title">Փեսայի Տուն</div>
         <div class="ev-addr" data-i18n="ev1Addr">ք. Երևան, Հրաչյա Քոչար 22</div>
         <a class="map-link" href="https://www.google.com/maps/search/?api=1&query=Hrachya+Kochar+22+Yerevan" target="_blank" rel="noopener" data-i18n="map">քարտեզ</a>
@@ -1214,7 +1212,6 @@
         <div class="ev-time">17:30</div>
         <div class="ev-title" data-i18n="ev4Title">Հարսանեկան Խնջույք</div>
         <div class="ev-venue" data-i18n="ev4Venue">«Wine Corner» ռեստորանային համալիր</div>
-        <div class="ev-addr" data-i18n="ev4Addr">ք. Աշտարակ</div>
         <a class="map-link" href="https://www.google.com/maps/place/Wine+Corner/@40.2949256,44.3619037,17z/data=!3m1!4b1!4m6!3m5!1s0x406a9bc168490c33:0x1a544d65a7b67a0e!8m2!3d40.2949256!4d44.3644786!16s%2Fg%2F11rqxsmkz5?entry=ttu&g_ep=EgoyMDI2MDcxMy4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener" data-i18n="map">քարտեզ</a>
       </div>
     </section>
@@ -1241,7 +1238,6 @@
   <div class="cards-wrap">
     <section class="cream-card reveal" id="rsvp">
       <h2 class="card-header" data-i18n="krRespond">Kindly Respond</h2>
-      <p class="card-sub">RSVP</p>
       <form id="rsvp-form" class="rsvp-form" novalidate>
         <p class="ask" data-i18n="ask">Խնդրում ենք հաստատել Ձեր մասնակցությունը՝ լրացնելով այս հարցաշարը մինչև օգոստոսի 10։</p>
         <div class="field">
@@ -1324,7 +1320,7 @@
           ev1Title: 'Փեսայի Տուն', ev1Addr: 'ք. Երևան, Հրաչյա Քոչար 22',
           ev2Title: 'Հարսի Տուն', ev2Addr: 'ք. Երևան, Էլեն Բյուզանդ 1/1',
           ev3Title: 'Պսակադրություն', ev3Venue: 'Սուրբ Զորավոր Աստվածածին Եկեղեցի', ev3Addr: 'ք. Երևան, Ղազար Փարպեցի 9',
-          ev4Title: 'Հարսանեկան Խնջույք', ev4Venue: '«Wine Corner» ռեստորանային համալիր', ev4Addr: 'ք. Աշտարակ',
+          ev4Title: 'Հարսանեկան Խնջույք', ev4Venue: '«Wine Corner» ռեստորանային համալիր',
           map: 'քարտեզ',
           ask: 'Խնդրում ենք հաստատել Ձեր մասնակցությունը՝ լրացնելով այս հարցաշարը մինչև օգոստոսի 10։',
           labelName: 'Անուն, ազգանուն', labelGuests: 'Հյուրերի քանակ',
@@ -1359,7 +1355,7 @@
           ev1Title: "Groom's House", ev1Addr: '22 Hrachya Kochar St, Yerevan',
           ev2Title: "Bride's House", ev2Addr: '1/1 Elen Byuzand St, Yerevan',
           ev3Title: 'Wedding Ceremony', ev3Venue: 'St. Zoravor Astvatsatsin Church', ev3Addr: '9 Ghazar Parpetsi St, Yerevan',
-          ev4Title: 'Wedding Reception', ev4Venue: '“Wine Corner” restaurant complex', ev4Addr: 'Ashtarak',
+          ev4Title: 'Wedding Reception', ev4Venue: '“Wine Corner” restaurant complex',
           map: 'map',
           ask: 'Please confirm your attendance by filling out this form before 10 August.',
           labelName: 'Full name', labelGuests: 'Number of guests',
@@ -1393,7 +1389,7 @@
           ev1Title: 'Дом жениха', ev1Addr: 'Ереван, ул. Грачья Кочара 22',
           ev2Title: 'Дом невесты', ev2Addr: 'Ереван, ул. Элен Бюзанд 1/1',
           ev3Title: 'Венчание', ev3Venue: 'Церковь Сурб Зоравор Аствацацин', ev3Addr: 'Ереван, ул. Казара Парпеци 9',
-          ev4Title: 'Свадебный банкет', ev4Venue: 'Ресторанный комплекс «Wine Corner»', ev4Addr: 'г. Аштарак',
+          ev4Title: 'Свадебный банкет', ev4Venue: 'Ресторанный комплекс «Wine Corner»',
           map: 'карта',
           ask: 'Пожалуйста, подтвердите своё участие, заполнив эту анкету до 10 августа.',
           labelName: 'Имя, фамилия', labelGuests: 'Количество гостей',
@@ -1454,29 +1450,37 @@
     })();
   </script>
   <script>
-    /* Music: button appears only when assets/song.mp3 exists */
+    /* Background forest sound: loops continuously, button toggles mute */
     (function(){
       var audio = document.getElementById('music');
       var btn = document.getElementById('music-btn');
-      var label = document.getElementById('music-label');
+      var note = document.getElementById('music-note');
       if(!audio || !btn) return;
-      audio.addEventListener('loadedmetadata', function(){ btn.hidden = false; });
+      audio.addEventListener('canplay', function(){ btn.hidden = false; });
       audio.addEventListener('error', function(){ btn.hidden = true; });
-      btn.addEventListener('click', function(){
-        if(audio.paused){
-          audio.play();
-          label.textContent = 'pause';
-        } else {
-          audio.pause();
-          label.textContent = 'tap to play';
-        }
+      // start on the first user gesture (opening the envelope counts) — autoplay policy
+      function start(){
+        audio.play().catch(function(){});
+        document.removeEventListener('click', start);
+        document.removeEventListener('touchstart', start);
+      }
+      document.addEventListener('click', start);
+      document.addEventListener('touchstart', start);
+      // mute / unmute
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        audio.muted = !audio.muted;
+        note.textContent = audio.muted ? '🔇' : '🔊';
+        btn.classList.toggle('muted', audio.muted);
+        btn.setAttribute('aria-label', audio.muted ? 'Unmute music' : 'Mute music');
+        if(!audio.muted) audio.play().catch(function(){});
       });
     })();
   </script>
   <script>
     /* Countdown to the wedding day */
     (function(){
-      var target = new Date('2026-08-23T11:30:00+04:00').getTime();
+      var target = new Date('2026-08-23T11:00:00+04:00').getTime();
       var elDays = document.getElementById('cd-days');
       var elHours = document.getElementById('cd-hours');
       var elMins = document.getElementById('cd-mins');
@@ -1530,8 +1534,12 @@
           form.reportValidity();
           return;
         }
+        // events are only required when the guest is actually attending ("Yes" = first radio)
+        var attendingRadios = form.querySelectorAll('input[name="attending"]');
+        var checkedAttending = form.querySelector('input[name="attending"]:checked');
+        var isAttending = checkedAttending && attendingRadios[0] && checkedAttending.value === attendingRadios[0].value;
         var events = form.querySelectorAll('input[name="events"]:checked');
-        if(events.length === 0){
+        if(isAttending && events.length === 0){
           showMsg(window.__t('msgEvents'), 'error');
           return;
         }

@@ -74,7 +74,7 @@ Replacement workflow: originals live untouched in `assets/`; generate web files 
   key to all three dicts + `data-i18n` attribute.
 - Cards: double borders via `border`+`outline` on `::after`; wax seal = CSS blob + radial
   gradient; swan sticker = inline SVG in `.swan-btn`.
-- Countdown targets `2026-08-23T11:30:00+04:00`; plaque/swan are `<button data-scroll>` smooth
+- Countdown targets `2026-08-23T11:00:00+04:00`; plaque/swan are `<button data-scroll>` smooth
   scrollers.
 - Prior designs (untracked): `index-parallax-version.html.bak`, `index-flatlay-version.html.bak`.
 
